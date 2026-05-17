@@ -146,8 +146,14 @@ function ScreenVault() {
               Connect your wallet to view your inscriptions.
             </div>
           ) : loading ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
-              Loading inscriptions...
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, padding: '12px 20px 20px' }}>
+              {[1,2,3,4,5,6].map(i => (
+                <div key={i} className="app-card" style={{ padding: 18, minHeight: 140, animation: 'pulse 1.5s ease-in-out infinite' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'color-mix(in srgb, var(--ink) 8%, transparent)', marginBottom: 12 }} />
+                  <div style={{ width: '70%', height: 14, borderRadius: 4, background: 'color-mix(in srgb, var(--ink) 6%, transparent)', marginBottom: 8 }} />
+                  <div style={{ width: '40%', height: 10, borderRadius: 4, background: 'color-mix(in srgb, var(--ink) 4%, transparent)' }} />
+                </div>
+              ))}
             </div>
           ) : inscriptions.length === 0 ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>

@@ -477,3 +477,15 @@
   50%      { opacity: 1; transform: scale(1.2) rotate(180deg); }
 }
 .apartado-spark { display: inline-block; animation: apartado-spark 4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+
+/* Mobile: collapse sidebar */
+@media (max-width: 768px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .shell-rail { display: none; }
+  .shell-search { display: none; }
+  .shell-crumbs { display: none; }
+  .shell-main { padding: 16px !important; }
+  .page-head { flex-direction: column; align-items: flex-start; }
+  .page-head h1 { font-size: 1.5rem !important; }
+}

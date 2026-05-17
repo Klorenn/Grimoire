@@ -1,6 +1,7 @@
 import React from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useT } from './i18n.jsx';
+import { CommandPalette } from './src/components/CommandPalette.jsx';
 
 /* Local sigil */
 const ASigil = ({ size = 28, className = '', style }) => (
@@ -160,6 +161,7 @@ function AppShell({ active, crumbs, children, mainPadding }) {
       <main className="shell-main" style={mainPadding ? { padding: mainPadding } : undefined}>
         {children}
       </main>
+      <CommandPalette />
     </div>
   );
 }
