@@ -21,10 +21,10 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
     throw new Error('LIGHTHOUSE_API_KEY is not configured. Set VITE_LIGHTHOUSE_API_KEY in .env');
   }
   const json = JSON.stringify(payload);
-  // Use uploadBuffer instead of uploadText for better gateway compatibility
+  // Use proper File upload for better IPFS pinning
   const blob = new Blob([json], { type: 'application/json' });
-  const buffer = await blob.arrayBuffer();
-  const response = await lighthouse.uploadBuffer(buffer, LIGHTHOUSE_API_KEY, name);
+  const file = new File([blob], `${name}.json`, { type: 'application/json' });
+  const response = await lighthouse.upload(file, LIGHTHOUSE_API_KEY);
   if (!response?.data?.Hash) {
     throw new Error('Lighthouse upload failed: no CID returned');
   }
@@ -36,12 +36,14 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
  * @param {string} cid - The IPFS CID
  * @returns {Promise<Object>} The EncryptedPayload object
  */
+const DEDICATED_GATEWAY = 'https://horrible-unicorn-2vtu8.lighthouse.storage';
+
 export async function fetchEncryptedPayload(cid) {
+  // Dedicated gateway first (free tier workaround)
   const urls = [
-    `https://gateway.lighthouse.storage/ipfs/${cid}`,
+    `${DEDICATED_GATEWAY}/ipfs/${cid}`,
     `https://ipfs.io/ipfs/${cid}`,
     `https://dweb.link/ipfs/${cid}`,
-    `https://ipfs.fleek.co/ipfs/${cid}`,
   ];
 
   let lastData = null;
