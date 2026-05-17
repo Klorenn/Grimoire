@@ -21,7 +21,10 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
     throw new Error('LIGHTHOUSE_API_KEY is not configured. Set VITE_LIGHTHOUSE_API_KEY in .env');
   }
   const json = JSON.stringify(payload);
-  const response = await lighthouse.uploadText(json, LIGHTHOUSE_API_KEY, name);
+  // Use uploadBuffer instead of uploadText for better gateway compatibility
+  const blob = new Blob([json], { type: 'application/json' });
+  const buffer = await blob.arrayBuffer();
+  const response = await lighthouse.uploadBuffer(buffer, LIGHTHOUSE_API_KEY, name);
   if (!response?.data?.Hash) {
     throw new Error('Lighthouse upload failed: no CID returned');
   }
@@ -41,6 +44,7 @@ export async function fetchEncryptedPayload(cid) {
     `https://ipfs.fleek.co/ipfs/${cid}`,
   ];
 
+  let lastData = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     for (const url of urls) {
       try {
@@ -49,14 +53,34 @@ export async function fetchEncryptedPayload(cid) {
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) continue;
-        const data = await res.json();
-        if (data?.ciphertext) return data;
+        const text = await res.text();
+        // Try parsing as JSON
+        try {
+          const data = JSON.parse(text);
+          // Could be direct payload or wrapped
+          if (data?.ciphertext) return data;
+          if (data?.data?.ciphertext) return data.data;
+          if (data?.payload?.ciphertext) return data.payload;
+          // Lighthouse uploadText wraps in a "text" field
+          if (data?.text) {
+            try { const inner = JSON.parse(data.text); if (inner?.ciphertext) return inner; } catch {}
+          }
+          lastData = data;
+        } catch {
+          // Not JSON, might be raw text — try parsing differently
+          if (text.includes('ciphertext')) {
+            try {
+              const cleaned = text.trim();
+              return JSON.parse(cleaned);
+            } catch { /* keep trying */ }
+          }
+        }
       } catch { continue; }
     }
-    // Wait between retries (IPFS needs time to propagate)
     if (attempt < 4) await new Promise(r => setTimeout(r, 5000));
   }
 
+  if (lastData) return lastData;
   throw new Error(`Failed to fetch from all gateways. Try again later.`);
 }
 
