@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import React, { useState } from 'react';
+import { useAccount, useReadContract } from 'wagmi';
 import { AppShell, PageHead } from './shell.jsx';
 import { IconSeed, IconKey, IconLetter, IconDocument, IconLedger, IconNote } from './icons.jsx';
-import { readMyInscriptions } from './src/lib/contract.js';
 import { getGatewayUrl } from './src/lib/lighthouse.js';
 import { InscribeForm } from './src/components/InscribeForm.jsx';
 import { RevealModal } from './src/components/RevealModal.jsx';
 import { CONTRACT_ADDRESS } from './src/config.js';
 import { useT } from './i18n.jsx';
+
+const ABI = [
+  { inputs: [], name: 'getMyInscriptions', outputs: [{ components: [{ name: 'owner', type: 'address' }, { name: 'cid', type: 'string' }, { name: 'kind', type: 'string' }, { name: 'titleHash', type: 'string' }, { name: 'createdAt', type: 'uint256' }], name: '', type: 'tuple[]' }], stateMutability: 'view', type: 'function' },
+];
 
 const INS_ICONS = {
   'seed-phrase': <IconSeed />,
@@ -19,30 +22,19 @@ const INS_ICONS = {
 };
 
 function ScreenVault() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { t } = useT();
   const v = t.vault;
-  const [inscriptions, setInscriptions] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [reveal, setReveal] = useState(null);
 
-  async function loadInscriptions() {
-    if (!isConnected || !CONTRACT_ADDRESS || CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') return;
-    setLoading(true);
-    try {
-      const data = await readMyInscriptions();
-      setInscriptions(data || []);
-    } catch (e) {
-      console.error('Failed to load inscriptions:', e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadInscriptions();
-  }, [isConnected]);
+  const { data: inscriptions = [], refetch: loadInscriptions, isLoading } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: ABI,
+    functionName: 'getMyInscriptions',
+    account: address,
+    query: { enabled: isConnected && CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000' },
+  });
 
   const kindLabel = (k) => {
     const labels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note' };
@@ -106,7 +98,7 @@ function ScreenVault() {
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
               Connect your wallet to view your inscriptions.
             </div>
-          ) : loading ? (
+          ) : isLoading ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
               Loading inscriptions...
             </div>
