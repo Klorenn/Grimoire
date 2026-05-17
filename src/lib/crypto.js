@@ -163,6 +163,25 @@ export async function decryptWithWalletKey(payload, sigKey) {
 export const KEY_DERIVATION_MESSAGE = 'Grimoire Vault Key Derivation v1';
 
 /**
+ * ECIES: Encrypt data with recipient's public key.
+ * Uses ECDH key agreement + AES-256-GCM.
+ * Returns { ephemeralPubKey (hex), iv (base64), ciphertext (base64) }
+ *
+ * NOTE: Full ECIES implementation requires raw public key operations.
+ * For Phase 1-3, use the KeyEscrow contract with wallet-based key derivation.
+ * The grantee signs with their wallet to decrypt.
+ */
+export async function eciesEncrypt(plaintext, recipientPubKeyHex) {
+  // Simplified for MVP: encrypt with a shared secret derived from both parties
+  // Full ECIES with ECDH would be implemented in Phase 4
+  throw new Error('ECIES not yet implemented. Use KeyEscrow contract for key sharing.');
+}
+
+export async function eciesDecrypt(encryptedData, ownerPrivateKey) {
+  throw new Error('ECIES not yet implemented. Use KeyEscrow contract for key sharing.');
+}
+
+/**
  * Encrypt a file (ArrayBuffer) with wallet-derived key.
  * Returns { ciphertext (base64), iv (base64), fileName, mimeType }
  */
