@@ -3,7 +3,7 @@ import { useAccount, useWriteContract, usePublicClient, useSignMessage } from 'w
 import { encryptWithWalletKey, deriveKeyFromSignature, hashText, KEY_DERIVATION_MESSAGE } from '../lib/crypto.js';
 import { uploadEncryptedPayload } from '../lib/lighthouse.js';
 import { CONTRACT_ADDRESS } from '../config.js';
-import { TEMPLATES } from '../lib/templates.js';
+import { getTemplates } from '../lib/templates.js';
 import { useT } from '../../i18n.jsx';
 
 const ABI = [
@@ -19,7 +19,7 @@ export function InscribeForm({ onClose, onSuccess }) {
   const { writeContractAsync } = useWriteContract();
   const { signMessageAsync } = useSignMessage();
   const publicClient = usePublicClient();
-  const { t } = useT();
+  const { t, lang } = useT();
   const i = t.inscribe;
 
   const [title, setTitle] = useState('');
@@ -173,7 +173,7 @@ export function InscribeForm({ onClose, onSuccess }) {
         <div>
           <label className="kv-key">{i.templateLabel}</label>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-            {TEMPLATES.map(tmpl => (
+            {getTemplates(lang).map(tmpl => (
               <button key={tmpl.id} type="button" className="chip"
                 onClick={() => { setTitle(tmpl.title); setKind(tmpl.kind); setChapter(tmpl.chapter || ''); if (tmpl.content) setSecret(tmpl.content); }}>
                 {tmpl.label}
