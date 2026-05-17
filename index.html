@@ -23,11 +23,14 @@
 
 <script>
 window.onerror = function(msg, url, line, col, error) {
+  if (url && url.includes('chrome-extension://')) return;
   var el = document.getElementById('errors');
   el.style.display = 'block';
   el.innerHTML = 'JS ERROR:\n' + msg + '\nat ' + url + ':' + line + ':' + col + '\n\nStack:\n' + (error && error.stack ? error.stack : 'none');
 };
 window.addEventListener('unhandledrejection', function(e) {
+  if (e.reason && e.reason.stack && e.reason.stack.includes('chrome-extension://')) return;
+  if (e.reason && e.reason.message && e.reason.message.includes('chrome.runtime.sendMessage')) return;
   var el = document.getElementById('errors');
   el.style.display = 'block';
   el.innerHTML = 'PROMISE ERROR:\n' + (e.reason ? (e.reason.stack || e.reason) : 'unknown');

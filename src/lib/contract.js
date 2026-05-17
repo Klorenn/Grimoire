@@ -5,7 +5,7 @@
  * Stores only CID + kind + titleHash onchain. NO secrets, plaintext, or passphrases.
  */
 
-import { writeContract, readContract } from '@wagmi/core';
+import { readContract } from '@wagmi/core';
 import { config, CONTRACT_ADDRESS } from '../config.js';
 
 const ABI = [
@@ -59,23 +59,6 @@ const ABI = [
     type: 'function',
   },
 ];
-
-/**
- * Register a CID onchain.
- * @param {string} cid - The IPFS CID
- * @param {string} kind - Inscription kind
- * @param {string} titleHash - SHA-256 hash of the title
- * @returns {Promise<string>} Transaction hash
- */
-export async function registerCidOnchain(cid, kind, titleHash) {
-  const hash = await writeContract(config, {
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
-    functionName: 'createInscription',
-    args: [cid, kind, titleHash],
-  });
-  return hash;
-}
 
 /**
  * Read all inscriptions for the connected wallet.

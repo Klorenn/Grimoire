@@ -7,6 +7,7 @@ import { getGatewayUrl } from './src/lib/lighthouse.js';
 import { InscribeForm } from './src/components/InscribeForm.jsx';
 import { RevealModal } from './src/components/RevealModal.jsx';
 import { CONTRACT_ADDRESS } from './src/config.js';
+import { useT } from './i18n.jsx';
 
 const INS_ICONS = {
   'seed-phrase': <IconSeed />,
@@ -19,6 +20,8 @@ const INS_ICONS = {
 
 function ScreenVault() {
   const { isConnected } = useAccount();
+  const { t } = useT();
+  const v = t.vault;
   const [inscriptions, setInscriptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -54,14 +57,14 @@ function ScreenVault() {
   return (
     <AppShell active="vault" crumbs={['HOME', 'OPEN GRIMOIRE']}>
       <PageHead
-        eyebrow={isConnected ? 'Your grimoire' : 'Connect your wallet'}
-        title={`Welcome${isConnected ? ' back' : ''}, <em>keeper</em>.`}
-        sub={isConnected ? 'Your vault is quiet. The last proof lives on Filecoin.' : 'Connect your wallet to open the grimoire.'}
+        eyebrow={isConnected ? v.eyebrowConnected : v.eyebrow}
+        title={isConnected ? v.welcomeBack : v.welcome}
+        sub={isConnected ? v.sub : v.subDisconnected}
         actions={isConnected ? (
           <>
-            <button className="app-btn ghost" onClick={loadInscriptions}>Refresh</button>
+            <button className="app-btn ghost" onClick={loadInscriptions}>{v.refresh}</button>
             <button className="app-btn gold" onClick={() => setShowForm(!showForm)}>
-              {showForm ? 'Close form' : '+ New inscription'}
+              {showForm ? v.closeForm : v.newInscription}
             </button>
           </>
         ) : null}

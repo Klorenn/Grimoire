@@ -7,3 +7,4 @@ contracts/artifacts/
 contracts/cache/
 contracts/typechain-types/
 uploads/
+.agents/

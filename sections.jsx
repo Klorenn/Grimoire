@@ -273,7 +273,7 @@ function Navbar() {
         </div>
         <div className="flex items-center gap-3">
           <LangToggle onDark={!scrolled} />
-          <WalletConnect onDark={!scrolled} />
+          <WalletConnect onDark={!scrolled} label={t.nav.connect} />
         </div>
       </div>
     </nav>
@@ -322,11 +322,12 @@ function Hero() {
               return (
                 <span
                   key={i}
-                  className={`reveal-word hero-word inline-block mr-[0.18em] ${gold ? 'hero-word-gold relative' : ''}`}
+                  className={`reveal-word hero-word inline-block ${gold ? 'hero-word-gold relative' : ''}`}
                   style={{
                     fontStyle: italic ? 'italic' : 'normal',
                     color: gold ? 'var(--gold)' : 'inherit',
                     fontWeight: italic ? 500 : 400,
+                    marginRight: '0.22em',
                     textShadow: gold ? '0 2px 28px rgba(232,168,71,0.55), 0 2px 14px rgba(26,46,53,0.35)' : undefined,
                     '--float-dur': `${floatDur}s`,
                     '--float-delay': `${floatDelay}s`,
@@ -350,21 +351,27 @@ function Hero() {
           </h1>
 
           <p className="mt-8 reveal-word hero-word"
-             style={{ maxWidth: '460px', color: 'rgba(250,243,227,0.92)', fontWeight: 300, fontSize: '1.075rem', lineHeight: 1.65 }}>
+             style={{ maxWidth: '460px', color: 'rgba(250,243,227,0.92)', fontWeight: 300, fontSize: '1.075rem', lineHeight: 1.65, textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
             {t.hero.subtitle}
           </p>
 
-          <div
-            className="reveal-word hero-word mt-9 flex items-stretch max-w-[480px]"
+          <div className="reveal-word hero-word mt-9"
+            style={{
+              display: 'inline-flex',
+              padding: '6px 6px 6px 20px',
+              borderRadius: '999px',
+              background: 'rgba(26,46,53,0.45)',
+              backdropFilter: 'blur(20px) saturate(150%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(150%)',
+              boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.25), 0 8px 32px -8px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+              alignItems: 'center',
+              gap: 0,
+            }}
           >
-            <div className="liquid-glass-dark flex items-center pl-5 pr-1.5 py-1.5"
-              style={{ borderRadius: '999px', flex: 1, background: 'rgba(26,46,53,0.35)', backdropFilter: 'blur(18px) saturate(140%)', WebkitBackdropFilter: 'blur(18px) saturate(140%)', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.3), 0 8px 32px -8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)' }}
-            >
-              <span className="flex-1 bg-transparent outline-none text-[rgba(250,243,227,0.8)] py-3 text-sm font-body">
-                {t.hero.placeholder}
-              </span>
-              <HeroWalletConnect />
-            </div>
+            <span style={{ color: 'rgba(250,243,227,0.85)', fontSize: '0.9rem' }}>
+              {t.hero.placeholder}
+            </span>
+            <HeroWalletConnect label={t.hero.cta} />
           </div>
 
           <div className="mt-6 reveal-word hero-word flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-mono uppercase tracking-[0.18em]"

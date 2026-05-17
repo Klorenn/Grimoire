@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 /* Local sigil — needs ../assets path since we're in apartados/ */
 const ASigil = ({ size = 28, className = '', style }) => (
@@ -45,8 +45,6 @@ const NAV_ORDER = [
 
 /* ── Top bar ─────────────────────────────────────────────────── */
 function TopBar({ crumbs = [] }) {
-  const { address, isConnected } = useAccount();
-  const shortAddr = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : '';
   return (
     <header className="shell-top">
       <div className="shell-brand">
@@ -71,10 +69,21 @@ function TopBar({ crumbs = [] }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button className="shell-icon-btn" aria-label="Notifications"><NavBell /></button>
         <button className="shell-icon-btn" aria-label="Settings"><NavCog /></button>
-        <div className="shell-wallet">
-          <span className={`dot ${isConnected ? '' : 'gone'}`} />
-          <span className="ens">{isConnected ? shortAddr : 'Not connected'}</span>
-        </div>
+        <ConnectButton.Custom>
+          {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
+            const connected = mounted && account && chain;
+            return (
+              <div
+                className="shell-wallet"
+                onClick={connected ? openAccountModal : openConnectModal}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className={`dot ${connected ? '' : 'gone'}`} />
+                <span className="ens">{connected ? (account.ensName || `${account.address.slice(0, 6)}…${account.address.slice(-4)}`) : 'Not connected'}</span>
+              </div>
+            );
+          }}
+        </ConnectButton.Custom>
       </div>
     </header>
   );

@@ -5,7 +5,7 @@ import React from 'react';
 const dict = {
   en: {
     /* nav */
-    nav: { collection: 'Collection', howitworks: 'How it works', stay: 'Stay', begin: 'Begin' },
+    nav: { collection: 'Collection', howitworks: 'How it works', stay: 'Stay', begin: 'Begin', connect: 'Connect' },
 
     /* hero */
     hero: {
@@ -182,10 +182,68 @@ const dict = {
       stay: 'Stay in touch:',
       foreverLine: 'forever · always · onchain',
     },
+
+    /* apartados */
+    vault: {
+      eyebrow: 'Your grimoire',
+      eyebrowConnected: 'Your grimoire',
+      welcome: 'Welcome, <em>keeper</em>.',
+      welcomeBack: 'Welcome back, <em>keeper</em>.',
+      sub: 'Your vault is quiet. The last proof lives on Filecoin.',
+      subDisconnected: 'Connect your wallet to open the grimoire.',
+      newInscription: '+ New inscription',
+      closeForm: 'Close form',
+      refresh: 'Refresh',
+      noInscriptions: 'No inscriptions yet.',
+      createFirst: 'Create your first inscription',
+      loadError: 'Failed to load inscriptions',
+    },
+    recovery: {
+      eyebrow: 'Recovery · four steps',
+      title: 'If you have lost your way, the grimoire <em>remembers</em>.',
+      sub: 'There is no help desk, because there are no employees with access. Recovery is a protocol — quiet, free, and always available.',
+      steps: [
+        { title: 'Re-derive your wallet.', lead: 'From your seed phrase, hardware device, or whatever you safekept.', help: 'No seed? Try your hardware wallet. Still nothing? See "what we cannot help with".' },
+        { title: 'Visit the recovery sigil.', lead: 'Open recover.grimoire.eth from any browser. No account. No email.', help: 'Onion mirror available. Works offline once cached — the protocol is local.' },
+        { title: 'Sign the recovery message.', lead: 'Your wallet signs a short, free message. The protocol verifies onchain.', help: 'Signing is free. The signature never leaves your browser.' },
+        { title: 'Your grimoire returns to you.', lead: 'Inscriptions decrypt locally. The vault opens exactly as you left it.', help: 'Average retrieval · 1.4 s. First open after long silence may take longer.' },
+      ],
+      checklist: { title: 'A short checklist', items: ['Your wallet (any way).', 'A browser with WebCrypto.', 'Five quiet minutes.'] },
+      warning: { title: 'A gentle truth.', body: 'If you lose every copy of your wallet and every recovery key, the grimoire will outlast you with no key to open. The math will not bend, and we cannot soften it.', note: 'This is the same reason it cannot be seized.' },
+      stuck: { title: 'if you are stuck', body: 'Reach the Order in the public forum. We help with the protocol, never with secrets.' },
+      needs: 'what you will need',
+      cannot: 'what we cannot do',
+    },
+    manifesto: {
+      eyebrow: '✦ A manifesto · the order of keepers',
+      title: 'On the quiet keeping of <em>precious things</em>.',
+      date: 'Mmxxvi · written for those who come after',
+      body: [
+        { type: 'p', text: 'We are not in the business of remembering for you. We have built a quiet room in which your most precious things can wait — not for us, not for a company, not even for the chain — but for the person you are when you return, or for the person you have asked to find them.' },
+        { type: 'p', text: 'The world has many places to keep what matters. Drawers, vaults, custodial cloud, paper folded into a book that goes with you when you move. Each one is borrowed. Borrowed from the company that owns the drawer. Borrowed from the fragility of the paper. Borrowed from electricity, from servers, from arrangements between strangers.' },
+        { type: 'h2', text: 'The grimoire belongs to math.' },
+        { type: 'p', text: 'Everything you write into it is sealed inside your own browser, before it touches a wire. The keys to that seal live with your wallet — never with us, never on a server, never in a screenshot we could be subpoenaed for. We engineered ourselves out of the loop.' },
+        { type: 'p', text: 'Once sealed, your inscription drifts onto Filecoin: a network of thousands of independent storage providers across thousands of independent jurisdictions, each holding a fragment, each cryptographically proving every twenty-four hours that they still hold what they promised to hold.' },
+        { type: 'quote', text: 'A grimoire is not a service. It is an arrangement between you, your wallet, and the math.' },
+        { type: 'p', text: 'And because the grimoire is anchored to FEVM — Filecoin\'s small, durable virtual machine — its address is etched into a place no court can reach, no acquisition can rewrite, no quiet pivot can erase. The protocol remembers, even when we don\'t.' },
+        { type: 'h2', text: 'On what should be kept.' },
+        { type: 'p', text: 'Not everything deserves the grimoire. Receipts do not. Calendars do not. Most photographs do not. The grimoire is for the few small things whose loss would unmake a piece of you or a piece of those who follow you.' },
+        { type: 'p', text: 'Seed phrases. Private keys. The deed that proves a roof is yours. The letter you cannot send while alive but want delivered on a specific day. The inventory of every account, written in language a fourteen-year-old could read. The note no one but you should ever see — kept, finally, in a way that does not require trusting that no one will see it.' },
+        { type: 'h2', text: 'On inheritance.' },
+        { type: 'p', text: 'When you go quiet, the grimoire is patient. It will nudge you, then ping you, then wait. Only at the end of a window you chose will it transition to the heirs you chose. We will not be in that room. We will not have a key to that room. The protocol will turn the lock.' },
+        { type: 'h2', text: 'A gentle warning.' },
+        { type: 'p', text: 'We cannot help you recover what you have lost the keys to. That is the same property that makes it impossible to steal from you. We will not call this a feature, but we will not apologize for it either.' },
+        { type: 'p', text: 'Keep your wallet well. Keep its seed in two places only you know. Tell at least one person that the grimoire exists, so they can find it when you cannot tell them yourself. Then, when the world is quieter than usual, return — and inscribe one small precious thing.' },
+        { type: 'p', text: 'The grimoire will be here.' },
+        { type: 'p', text: 'And it will hold what you give it for as long as the math holds the world.', italic: true },
+      ],
+      signoff: '— The Order of Keepers',
+      anchored: 'Anchored · FEVM · 0xfe…42a9',
+    },
   },
 
   es: {
-    nav: { collection: 'La colección', howitworks: 'Cómo funciona', stay: 'Quedarse', begin: 'Comenzar' },
+    nav: { collection: 'La colección', howitworks: 'Cómo funciona', stay: 'Quedarse', begin: 'Comenzar', connect: 'Conectar' },
 
     hero: {
       eyebrow: 'Tu grimorio personal',
@@ -352,6 +410,64 @@ const dict = {
       copy: 'Hecho con cuidado · © 2026 La Orden de Grimoire',
       stay: 'Sigamos en contacto:',
       foreverLine: 'para siempre · onchain · siempre',
+    },
+
+    /* apartados */
+    vault: {
+      eyebrow: 'Tu grimorio',
+      eyebrowConnected: 'Tu grimorio',
+      welcome: 'Bienvenido, <em>guardián</em>.',
+      welcomeBack: 'Bienvenido de vuelta, <em>guardián</em>.',
+      sub: 'Tu bóveda está tranquila. La última prueba vive en Filecoin.',
+      subDisconnected: 'Conecta tu wallet para abrir el grimorio.',
+      newInscription: '+ Nueva inscripción',
+      closeForm: 'Cerrar formulario',
+      refresh: 'Actualizar',
+      noInscriptions: 'Sin inscripciones aún.',
+      createFirst: 'Crea tu primera inscripción',
+      loadError: 'Error al cargar inscripciones',
+    },
+    recovery: {
+      eyebrow: 'Recuperación · cuatro pasos',
+      title: 'Si has perdido el camino, el grimorio <em>recuerda</em>.',
+      sub: 'No hay mesa de ayuda, porque no hay empleados con acceso. La recuperación es un protocolo — silencioso, gratuito y siempre disponible.',
+      steps: [
+        { title: 'Re-deriva tu wallet.', lead: 'Desde tu frase semilla, dispositivo hardware, o lo que hayas guardado.', help: '¿Sin semilla? Prueba tu hardware wallet. ¿Nada aún? Mira "con qué no podemos ayudar".' },
+        { title: 'Visita el sello de recuperación.', lead: 'Abre recover.grimoire.eth desde cualquier navegador. Sin cuenta. Sin correo.', help: 'Hay mirror en Onion. Funciona offline una vez cacheado — el protocolo es local.' },
+        { title: 'Firma el mensaje de recuperación.', lead: 'Tu wallet firma un mensaje corto y gratuito. El protocolo verifica onchain.', help: 'Firmar es gratis. La firma nunca sale de tu navegador.' },
+        { title: 'Tu grimorio vuelve a ti.', lead: 'Las inscripciones se descifran localmente. La bóveda se abre exactamente como la dejaste.', help: 'Recuperación media · 1.4 s. La primera apertura tras un largo silencio puede tardar más.' },
+      ],
+      checklist: { title: 'Una lista corta', items: ['Tu wallet (de cualquier forma).', 'Un navegador con WebCrypto.', 'Cinco minutos de calma.'] },
+      warning: { title: 'Una verdad delicada.', body: 'Si pierdes cada copia de tu wallet y cada clave de recuperación, el grimorio te sobrevivirá sin llave para abrirlo. La matemática no se dobla, y no podemos suavizarla.', note: 'Esta es la misma razón por la que no puede ser confiscado.' },
+      stuck: { title: 'si estás atascado', body: 'Contacta a la Orden en el foro público. Ayudamos con el protocolo, nunca con secretos.' },
+      needs: 'lo que necesitarás',
+      cannot: 'lo que no podemos hacer',
+    },
+    manifesto: {
+      eyebrow: '✦ Un manifiesto · la orden de los guardianes',
+      title: 'Sobre el cuidado silencioso de las <em>cosas preciosas</em>.',
+      date: 'Mmxxvi · escrito para los que vienen después',
+      body: [
+        { type: 'p', text: 'No estamos en el negocio de recordar por ti. Hemos construido una habitación tranquila donde tus cosas más preciosas pueden esperar — no por nosotros, no por una empresa, ni siquiera por la cadena — sino por la persona que eres cuando regresas, o por la persona a la que le has pedido que las encuentre.' },
+        { type: 'p', text: 'El mundo tiene muchos lugares para guardar lo que importa. Cajones, bóvedas, nube de custodia, papel doblado en un libro que va contigo cuando te mudas. Cada uno es prestado. Prestado de la empresa dueña del cajón. Prestado de la fragilidad del papel. Prestado de la electricidad, de los servidores, de acuerdos entre extraños.' },
+        { type: 'h2', text: 'El grimorio pertenece a la matemática.' },
+        { type: 'p', text: 'Todo lo que escribes en él se sella dentro de tu propio navegador, antes de tocar un cable. Las llaves de ese sello viven con tu wallet — nunca con nosotros, nunca en un servidor, nunca en una captura de pantalla por la que podamos ser citados. Nos hemos diseñado fuera del circuito.' },
+        { type: 'p', text: 'Una vez sellada, tu inscripción viaja a Filecoin: una red de miles de proveedores de almacenamiento independientes en miles de jurisdicciones independientes, cada uno sosteniendo un fragmento, cada uno probando criptográficamente cada veinticuatro horas que aún guardan lo que prometieron guardar.' },
+        { type: 'quote', text: 'Un grimorio no es un servicio. Es un acuerdo entre tú, tu wallet y la matemática.' },
+        { type: 'p', text: 'Y como el grimorio está anclado a FEVM — la pequeña y duradera máquina virtual de Filecoin — su dirección está grabada en un lugar que ningún tribunal puede alcanzar, ninguna adquisición puede reescribir, ningún giro silencioso puede borrar. El protocolo recuerda, incluso cuando nosotros no.' },
+        { type: 'h2', text: 'Sobre lo que debe guardarse.' },
+        { type: 'p', text: 'No todo merece el grimorio. Los recibos no. Los calendarios no. La mayoría de las fotografías no. El grimorio es para las pocas cosas pequeñas cuya pérdida desharía una parte de ti o de quienes te siguen.' },
+        { type: 'p', text: 'Frases semilla. Llaves privadas. La escritura que prueba que un techo es tuyo. La carta que no puedes enviar en vida pero quieres entregar en un día concreto. El inventario de cada cuenta, escrito en un lenguaje que un chico de catorce años pueda leer. La nota que nadie más que tú debería ver — guardada, por fin, sin necesidad de confiar en que nadie la verá.' },
+        { type: 'h2', text: 'Sobre la herencia.' },
+        { type: 'p', text: 'Cuando te quedes en silencio, el grimorio es paciente. Te dará un toque, luego un aviso, luego esperará. Solo al final de una ventana que tú elegiste hará la transición a los herederos que tú elegiste. No estaremos en esa habitación. No tendremos una llave de esa habitación. El protocolo girará la cerradura.' },
+        { type: 'h2', text: 'Una advertencia delicada.' },
+        { type: 'p', text: 'No podemos ayudarte a recuperar aquello de lo que has perdido las llaves. Esa es la misma propiedad que hace imposible robártelo. No lo llamaremos una ventaja, pero tampoco nos disculparemos por ello.' },
+        { type: 'p', text: 'Cuida bien tu wallet. Guarda su semilla en dos lugares que solo tú conozcas. Dile al menos a una persona que el grimorio existe, para que pueda encontrarlo cuando tú no puedas decírselo. Luego, cuando el mundo esté más callado de lo habitual, regresa — e inscribe una pequeña cosa preciosa.' },
+        { type: 'p', text: 'El grimorio estará aquí.' },
+        { type: 'p', text: 'Y guardará lo que le des mientras la matemática sostenga el mundo.', italic: true },
+      ],
+      signoff: '— La Orden de los Guardianes',
+      anchored: 'Anclado · FEVM · 0xfe…42a9',
     },
   },
 };

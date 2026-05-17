@@ -6,7 +6,7 @@ const RPC_URL = import.meta.env.VITE_FILECOIN_CALIBRATION_RPC_URL || 'https://ap
 
 export const config = getDefaultConfig({
   appName: 'Grimoire',
-  projectId: 'grimoire-mvp', // Replace with your WalletConnect projectId: https://cloud.walletconnect.com
+  projectId: 'e6061e969c6b0287886b8a14ba927e57',
   chains: [filecoinCalibration],
   transports: {
     [filecoinCalibration.id]: http(RPC_URL),
