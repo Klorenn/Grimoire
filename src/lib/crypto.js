@@ -16,7 +16,7 @@ const KDF = 'PBKDF2-SHA256';
 const ITERATIONS = 250000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
-const VERSION = 'grimoire-v1';
+const VERSION = 'grimoire-v2';
 
 /**
  * @typedef {Object} EncryptedPayload
@@ -117,3 +117,47 @@ export async function hashText(text) {
   const hashArr = Array.from(new Uint8Array(hashBuf));
   return '0x' + hashArr.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+/**
+ * Derive an AES-256 key from a wallet EIP-191 signature.
+ * Same wallet + same message = same key. No passphrase needed.
+ * @param {`0x${string}`} signature - The wallet signature hex
+ * @returns {Promise<CryptoKey>}
+ */
+export async function deriveKeyFromSignature(signature) {
+  const enc = new TextEncoder();
+  const sigHash = await crypto.subtle.digest('SHA-256', enc.encode(signature));
+  return crypto.subtle.importKey('raw', sigHash, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+/**
+ * Encrypt using wallet-derived key (no passphrase, no PBKDF2).
+ */
+export async function encryptWithWalletKey(secret, sigKey) {
+  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
+  const enc = new TextEncoder();
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, sigKey, enc.encode(secret));
+  return {
+    version: VERSION,
+    algorithm: ALGORITHM,
+    kdf: 'WALLET-SIGNATURE',
+    iterations: 0,
+    salt: '',
+    iv: bufToBase64(iv),
+    ciphertext: bufToBase64(ciphertext),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Decrypt using wallet-derived key.
+ */
+export async function decryptWithWalletKey(payload, sigKey) {
+  const iv = new Uint8Array(base64ToBuf(payload.iv));
+  const ciphertext = new Uint8Array(base64ToBuf(payload.ciphertext));
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, sigKey, ciphertext);
+  return new TextDecoder().decode(decrypted);
+}
+
+/** Signing message for key derivation — deterministic per wallet */
+export const KEY_DERIVATION_MESSAGE = 'Grimoire Vault Key Derivation v1';

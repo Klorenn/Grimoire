@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
-import { encryptSecret, hashText } from '../lib/crypto.js';
+import { useAccount, useWriteContract, usePublicClient, useSignMessage } from 'wagmi';
+import { encryptWithWalletKey, deriveKeyFromSignature, hashText, KEY_DERIVATION_MESSAGE } from '../lib/crypto.js';
 import { uploadEncryptedPayload } from '../lib/lighthouse.js';
 import { CONTRACT_ADDRESS } from '../config.js';
 import { useT } from '../../i18n.jsx';
@@ -12,8 +12,9 @@ const ABI = [
 const KIND_IDS = ['seed-phrase', 'private-key', 'document', 'letter', 'note'];
 
 export function InscribeForm({ onClose, onSuccess }) {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
   const publicClient = usePublicClient();
   const { t } = useT();
   const i = t.inscribe;
@@ -21,43 +22,47 @@ export function InscribeForm({ onClose, onSuccess }) {
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState('note');
   const [secret, setSecret] = useState('');
-  const [passphrase, setPassphrase] = useState('');
-  const [confirmPassphrase, setConfirmPassphrase] = useState('');
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
   const [cid, setCid] = useState('');
   const [txHash, setTxHash] = useState('');
   const [pollCount, setPollCount] = useState(0);
-
-  function validate() {
-    if (!title.trim()) return 'Title is required';
-    if (!secret.trim()) return 'Secret cannot be empty';
-    if (!passphrase) return 'Passphrase is required';
-    if (passphrase !== confirmPassphrase) return 'Passphrases do not match';
-    if (passphrase.length < 8) return 'Passphrase must be at least 8 characters';
-    return null;
-  }
+  const [sigKey, setSigKey] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (!title.trim()) { setError('Title is required'); return; }
+    if (!secret.trim()) { setError('Secret cannot be empty'); return; }
     if (!isConnected) { setError('Connect your wallet first'); return; }
 
     try {
+      // Step 0: Sign for key derivation
+      setStep(0);
+      const message = `${KEY_DERIVATION_MESSAGE} · ${address}`;
+      const signature = await signMessageAsync({ message });
+      const key = await deriveKeyFromSignature(signature);
+      setSigKey(key);
+
+      // Step 1: Hash title
       setStep(1);
       const titleHash = await hashText(title.trim());
+
+      // Step 2: Encrypt with wallet-derived key
       setStep(2);
-      const payload = await encryptSecret(secret, passphrase);
+      const payload = await encryptWithWalletKey(secret, key);
+
+      // Step 3: Upload
       setStep(3);
       const uploadedCid = await uploadEncryptedPayload(payload, `grimoire-${kind}`);
       setCid(uploadedCid);
+
+      // Step 4: Register onchain
       setStep(4);
       const hash = await writeContractAsync({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'createInscription', args: [uploadedCid, kind, titleHash] });
       setTxHash(hash);
 
-      // Manual polling for receipt
+      // Poll for receipt
       if (publicClient) {
         for (let attempt = 0; attempt < 60; attempt++) {
           await new Promise(r => setTimeout(r, 3000));
@@ -65,23 +70,15 @@ export function InscribeForm({ onClose, onSuccess }) {
           try {
             const receipt = await publicClient.getTransactionReceipt({ hash });
             if (receipt) {
-              if (receipt.status === 'success') {
-                setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
-                // Don't call onSuccess yet — let user see the success screen first
-                return;
-              }
-              if (receipt.status === 'reverted') {
-                setError('Transaction reverted onchain');
-                setStep(0);
-                return;
-              }
+              if (receipt.status === 'success') { setStep(5); setSecret(''); return; }
+              if (receipt.status === 'reverted') { setError('Transaction reverted'); setStep(0); return; }
             }
-          } catch { /* receipt not ready yet */ }
+          } catch { /* not ready */ }
         }
-        setError('Transaction not confirmed after 3 minutes. Check the explorer: https://calibration.filfox.info/tx/' + hash);
+        setError('Not confirmed after 3 min. Check explorer.');
         setStep(0);
       } else {
-        setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
+        setStep(5); setSecret('');
         if (onSuccess) onSuccess();
       }
     } catch (err) {
@@ -90,26 +87,25 @@ export function InscribeForm({ onClose, onSuccess }) {
     }
   }
 
+  // Processing screen
   if (step > 0 && step < 5) {
-    const stepIdx = step - 1;
+    const steps = ['Signing...', 'Hashing title...', 'Encrypting...', 'Uploading to Filecoin...', 'Registering onchain...'];
+    const subs = ['Wallet signature · deterministic key', 'SHA-256 · your browser', 'AES-256-GCM · wallet key', 'Pinata · IPFS', 'FEVM · GrimoireRegistry'];
     return (
       <div className="app-card" style={{ padding: 32, maxWidth: 480, margin: '40px auto', textAlign: 'center' }}>
         <div style={{ fontSize: 36, marginBottom: 16 }}>✦</div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--ink)', fontWeight: 500 }}>{i.steps[stepIdx]}</h2>
-        <p style={{ marginTop: 8, color: 'var(--ink-soft)', fontSize: '0.9rem' }}>{i.stepsSub[stepIdx]}</p>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--ink)', fontWeight: 500 }}>{steps[step - 1]}</h2>
+        <p style={{ marginTop: 8, color: 'var(--ink-soft)', fontSize: '0.9rem' }}>{subs[step - 1]}</p>
         <div style={{ marginTop: 24, width: '100%', height: 4, background: 'color-mix(in srgb, var(--ink) 8%, transparent)', borderRadius: 2 }}>
           <div style={{ width: `${(step / 4) * 100}%`, height: '100%', background: 'var(--gold-warm)', borderRadius: 2, transition: 'width 0.5s ease' }} />
         </div>
-        {txHash && (
-          <div style={{ marginTop: 12 }}>
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--ink-soft)' }}>tx: {txHash.slice(0, 14)}...</p>
-            {pollCount > 0 && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--ink-soft)', marginTop: 4 }}>Checking confirmation... ({pollCount}/60 · ~{pollCount * 3}s)</p>}
-          </div>
-        )}
+        {txHash && <p style={{ marginTop: 12, fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--ink-soft)' }}>tx: {txHash.slice(0, 14)}...</p>}
+        {pollCount > 0 && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--ink-soft)', marginTop: 4 }}>Checking ({pollCount}/60 · ~{pollCount * 3}s)</p>}
       </div>
     );
   }
 
+  // Success screen
   if (step === 5) {
     return (
       <div className="app-card" style={{ padding: 32, maxWidth: 480, margin: '40px auto', textAlign: 'center' }}>
@@ -124,6 +120,7 @@ export function InscribeForm({ onClose, onSuccess }) {
     );
   }
 
+  // Form
   return (
     <div className="app-card" style={{ padding: 28, maxWidth: 520, margin: '20px auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -142,13 +139,12 @@ export function InscribeForm({ onClose, onSuccess }) {
           {KIND_IDS.map((k, idx) => <button key={k} type="button" className={`chip ${kind === k ? 'gold' : ''}`} onClick={() => setKind(k)}>{i.kinds[idx]}</button>)}
         </div></div>
         <div><label className="kv-key">{i.secret}</label><textarea value={secret} onChange={e => setSecret(e.target.value)} placeholder={i.placeholder.secret} rows={4} style={{ ...inputStyle, resize: 'vertical', minHeight: 80, fontFamily: 'var(--font-body)' }} /></div>
-        <div><label className="kv-key">{i.passphrase}</label><input type="password" value={passphrase} onChange={e => setPassphrase(e.target.value)} placeholder={i.placeholder.passphrase} autoComplete="new-password" style={inputStyle} /></div>
-        <div><label className="kv-key">{i.confirm}</label><input type="password" value={confirmPassphrase} onChange={e => setConfirmPassphrase(e.target.value)} placeholder={i.placeholder.confirm} autoComplete="new-password" style={inputStyle} /></div>
+
         <div style={{ padding: '12px 14px', borderRadius: 12, background: 'color-mix(in srgb, var(--gold) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--gold) 20%, transparent)', fontSize: '0.8rem', color: 'var(--ink-soft)', lineHeight: 1.5 }}>
-          ⚠️ <strong>{i.warning.split('.')[0]}.</strong> {i.warning.split('.').slice(1).join('.')}
+          ⚠️ Your wallet signature generates a deterministic key. <strong>If you lose your wallet, you lose access.</strong> Same wallet = same key. No passphrase needed.
         </div>
         <button type="submit" className="app-btn gold" disabled={!isConnected} style={{ justifyContent: 'center', marginTop: 8 }}>
-          {isConnected ? i.cta : i.ctaDisconnected}
+          {isConnected ? 'Sign & ✦ Inscribe' : i.ctaDisconnected}
         </button>
       </form>
     </div>

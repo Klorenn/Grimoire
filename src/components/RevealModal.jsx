@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { useSignMessage, useAccount } from 'wagmi';
 import { fetchEncryptedPayload } from '../lib/lighthouse.js';
-import { decryptSecret } from '../lib/crypto.js';
+import { decryptWithWalletKey, deriveKeyFromSignature, KEY_DERIVATION_MESSAGE } from '../lib/crypto.js';
 import { useT } from '../../i18n.jsx';
 
 export function RevealModal({ cid, kind, onClose }) {
   const { t } = useT();
   const r = t.reveal;
+  const { address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
 
-  const [passphrase, setPassphrase] = useState('');
   const [loading, setLoading] = useState(false);
   const [decrypted, setDecrypted] = useState('');
   const [error, setError] = useState('');
@@ -18,24 +20,24 @@ export function RevealModal({ cid, kind, onClose }) {
     setError('');
     setLoading(true);
     try {
+      // Sign to derive key
+      const message = `${KEY_DERIVATION_MESSAGE} · ${address}`;
+      const signature = await signMessageAsync({ message });
+      const sigKey = await deriveKeyFromSignature(signature);
+
       const payload = await fetchEncryptedPayload(cid);
-      try {
-        const secret = await decryptSecret(payload, passphrase);
-        setDecrypted(secret);
-        setRevealed(true);
-        setPassphrase('');
-      } catch {
-        setError(r.decryptError);
-      }
-    } catch {
-      setError(r.fetchError);
+      const secret = await decryptWithWalletKey(payload, sigKey);
+      setDecrypted(secret);
+      setRevealed(true);
+    } catch (err) {
+      setError(r.decryptError);
     } finally {
       setLoading(false);
     }
   }
 
   function handleClose() {
-    setDecrypted(''); setPassphrase(''); setError(''); setRevealed(false);
+    setDecrypted(''); setError(''); setRevealed(false);
     onClose();
   }
 
@@ -54,13 +56,12 @@ export function RevealModal({ cid, kind, onClose }) {
           <form onSubmit={handleReveal} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--ink-soft)', wordBreak: 'break-all' }}>CID: {cid}</div>
             {kind && <div className="chip">{kind}</div>}
-            <div>
-              <label className="kv-key">{r.passphrase}</label>
-              <input type="password" autoComplete="new-password" value={passphrase} onChange={e => setPassphrase(e.target.value)} placeholder={r.placeholder} autoFocus style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--ink) 12%, transparent)', background: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--ink)', outline: 'none', marginTop: 4, boxSizing: 'border-box' }} />
-            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', lineHeight: 1.5 }}>
+              Your wallet will sign a message to derive the decryption key. The signature never leaves your browser.
+            </p>
             {error && <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(164,88,74,0.1)', border: '1px solid rgba(164,88,74,0.2)', color: '#A4584A', fontSize: '0.85rem' }}>{error}</div>}
             <button type="submit" className="app-btn gold" disabled={loading} style={{ justifyContent: 'center' }}>
-              {loading ? r.fetching : r.cta}
+              {loading ? r.fetching : 'Sign & ✦ Reveal'}
             </button>
           </form>
         ) : (
