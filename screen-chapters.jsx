@@ -1,16 +1,19 @@
 import React from 'react';
 import { AppShell, PageHead } from './shell.jsx';
+import { useT } from './i18n.jsx';
 
 function ScreenChapters() {
   return (
     <AppShell active="chapters" crumbs={['HOME', 'CHAPTERS']}>
-      <PageHead eyebrow="" title="<em>Chapters</em>" sub="Organize your inscriptions into folders." />
-      <div className="app-card" style={{ padding: 60, textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 16, color: 'var(--gold-warm)' }}>✦</div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--ink)', fontWeight: 500 }}>Coming in Phase 2</h2>
-        <p style={{ margin: '12px auto 0', color: 'var(--ink-soft)', fontSize: '0.95rem', maxWidth: 480 }}>Create chapters to organize your grimoire. Seed phrases in one, letters in another.</p>
-        <button className="app-btn gold" style={{ marginTop: 24 }} onClick={() => window.location.hash = '#/vault'}>Open your vault →</button>
-      </div>
+      <PageHead eyebrow="" title="<em>Chapters</em>" sub="Organize your inscriptions into folders. Create chapters for Family, Crypto, Legal — whatever makes sense." />
+      <section className="app-card" style={{ padding: 24 }}>
+        <div className="kv-key">your chapters</div>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginTop: 4, fontWeight: 500 }}>No chapters yet</h3>
+        <p style={{ marginTop: 6, color: 'var(--ink-soft)', fontSize: '0.9rem', lineHeight: 1.55 }}>
+          Chapters are created automatically when you assign an inscription to one. Create an inscription and set a chapter name to start organizing.
+        </p>
+        <button className="app-btn gold" style={{ marginTop: 16 }} onClick={() => window.location.hash = '#/vault'}>Open your vault →</button>
+      </section>
     </AppShell>
   );
 }
