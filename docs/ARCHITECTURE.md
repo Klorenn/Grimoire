@@ -1,131 +1,164 @@
-# Grimoire Architecture
+# Grimoire — Architecture
 
-Grimoire is a **Web3 encrypted vault** that stores secrets on the decentralized web. Users encrypt sensitive data entirely in the browser. The encrypted ciphertext is persisted on **IPFS/Filecoin** via Lighthouse, while a minimal onchain registry on **FEVM** (Filecoin Calibration) records the CID, kind, and hashed title. No plaintext, passphrase, or private key ever leaves the user's device.
+## Overview
 
-## Stack Overview
+Grimoire is a **client-side encrypted vault** on Filecoin. Users inscribe their most precious data (seed phrases, private keys, documents, letters) encrypted in the browser, stored on IPFS/Filecoin via Pinata, and registered onchain via FEVM smart contracts.
+
+**Core principle: no plaintext ever leaves the browser.**
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Browser (Client)                      │
+│  ┌──────────┐  ┌───────────┐  ┌──────────────────────┐ │
+│  │ RainbowKit│  │ Web Crypto│  │     Pinata SDK       │ │
+│  │  + wagmi │  │   AES-GCM │  │  pinJSONToIPFS       │ │
+│  │  + viem  │  │  PBKDF2   │  │  pinFileToIPFS       │ │
+│  └────┬─────┘  └─────┬─────┘  └──────────┬───────────┘ │
+│       │              │                    │             │
+└───────┼──────────────┼────────────────────┼─────────────┘
+        │              │                    │
+        ▼              ▼                    ▼
+┌───────────┐  ┌──────────────┐  ┌──────────────────┐
+│  Wallet   │  │  Ciphertext  │  │  IPFS / Filecoin  │
+│ Signature │  │  (AES-256)   │  │  (Pinata gateway) │
+│  → Key    │  │  in browser  │  │  public + cached  │
+└─────┬─────┘  └──────────────┘  └──────────────────┘
+      │
+      ▼
+┌──────────────────────────────────────┐
+│  FEVM Smart Contract                 │
+│  GrimoireRegistry v2                 │
+│  · createInscription(cid, kind,      │
+│    titleHash, unlockAt)              │
+│  · getMyInscriptions()               │
+│  · ping() · configureHeirs()         │
+│  Filecoin Calibration (chain 314159) │
+└──────────────────────────────────────┘
+```
+
+## Stack
 
 | Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | React 18 + Vite | Single-page application |
-| **Styling** | Tailwind CSS v4 | Utility-first design system |
-| **Wallet** | RainbowKit + wagmi + viem | Wallet connection, tx signing |
-| **Encryption** | Web Crypto API (AES-256-GCM, PBKDF2) | Client-side encrypt/decrypt |
-| **Storage** | Lighthouse SDK → IPFS/Filecoin | Decentralized encrypted payload storage |
-| **Smart Contract** | Solidity 0.8.20 → FEVM | Onchain registry of CIDs |
-| **Network** | Filecoin Calibration (chainId 314159) | Testnet for MVP |
+|-------|-----------|---------|
+| Frontend | Vite 5 + React 18 | SPA build system |
+| Styling | Tailwind CSS v4 CDN + custom CSS | Ghibli-inspired design |
+| Wallet | RainbowKit 2.2 + wagmi 2 + viem 2 | Multi-wallet connection |
+| Encryption | Web Crypto API (AES-256-GCM) | Client-side encryption |
+| Key Derivation | EIP-191 personal sign + SHA-256 | Deterministic per wallet |
+| Storage | Pinata (pinJSONToIPFS / pinFileToIPFS) | IPFS upload + gateway |
+| Blockchain | Filecoin Calibration (testnet, 314159) | Smart contract execution |
+| Smart Contract | Solidity 0.8.20 + Hardhat 2.22 | GrimoireRegistry v2 |
+| i18n | Custom React context (EN / ES) | Bilingual support |
+| State | React useState + wagmi hooks | Client-only state |
 
-## Network Configuration
+## Data Flow
 
-```
-Chain ID:    314159
-RPC:         https://api.calibration.node.glif.io/rpc/v1
-Explorers:   https://beryx.zondax.ch
-             https://calibration.filfox.info
-             https://calibration.filscan.io
-```
+### Inscription Creation
+1. User fills form (title, kind, content/file, optional chapter, optional time-lock)
+2. User signs deterministic message: `"Grimoire Vault Key Derivation v1 · {walletAddress}"`
+3. SHA-256 of signature → AES-256 key (same wallet = same key)
+4. Content encrypted with AES-256-GCM (random 12-byte IV per encryption)
+5. Encrypted payload uploaded to Pinata → IPFS → returns CID
+6. `createInscription(cid, kind, titleHash, unlockAt)` called on FEVM
+7. Tx confirmed, inscription appears in vault
 
-## What Lives Onchain vs Offchain
+### Inscription Retrieval (Reveal)
+1. User clicks "Reveal" on an inscription
+2. User signs same deterministic message → same AES key
+3. Encrypted payload fetched from IPFS via Pinata gateway (or fallbacks)
+4. Content decrypted locally in browser
+5. Displayed — cleared from state on close
 
-### Onchain (GrimoireRegistry.sol on FEVM)
+### Time-Lock Flow
+1. User sets optional `unlockAt` date during inscription
+2. Contract stores `unlockAt` timestamp
+3. Vault shows ⏳ countdown for locked inscriptions
+4. UI prevents Reveal until `now >= unlockAt` (client-enforced)
+5. After unlock date, inscription behaves normally
 
-- `owner` — wallet address that created the inscription
-- `cid` — IPFS Content Identifier pointing to the encrypted payload
-- `kind` — type of inscription (e.g. "seed-phrase", "private-key", "letter")
-- `titleHash` — SHA-256 hash of the user-chosen title (title itself is never stored anywhere)
-- `createdAt` — block timestamp
-- `InscriptionCreated` event — emitted on each new inscription
+### Heir / Dead Man's Switch Flow
+1. Owner configures heirs (wallet addresses), threshold, dormancy period
+2. Owner pings periodically (automatic on every inscription/edit)
+3. If owner stops pinging for dormancy period:
+   - Heirs can check `isDormant(owner)`
+   - Heirs collect M-of-N signatures
+   - Heirs call `claimAsHeir()` to gain access
+4. Phase 4+: Heir key escrow via ECIES encryption of AES key
 
-### Offchain (IPFS/Filecoin via Lighthouse)
+## Onchain vs Offchain
 
-- The encrypted payload (`EncryptedPayload` JSON object) — version, algorithm, KDF parameters, salt, IV, ciphertext, creation timestamp
-- The ciphertext itself, which decrypts to the original secret using the user's passphrase
+| Data | Location | Encrypted? |
+|------|----------|-----------|
+| Secret content | IPFS (Pinata) | ✅ AES-256-GCM |
+| File content | IPFS (Pinata) | ✅ AES-256-GCM |
+| Title hash | FEVM contract | ✅ SHA-256 |
+| Kind | FEVM contract | ❌ (public metadata) |
+| CID | FEVM contract | ❌ (address only) |
+| unlockAt | FEVM contract | ❌ |
+| Chapter | Encrypted payload | ✅ |
+| Wallet address | FEVM contract (msg.sender) | ❌ |
+| Heir config | FEVM contract | ❌ |
+| Passphrase | Nowhere | N/A (wallet signature used) |
 
-### Never Stored Anywhere
+## Security Model
 
-- Plaintext secrets (seed phrases, private keys, messages)
-- User passphrases
-- Unhashed titles
-- Decryption keys or key material
+- **No backend**: No server to hack, no database to leak
+- **No passphrase**: Key derived from wallet signature (deterministic)
+- **No plaintext storage**: Nothing unencrypted leaves the browser
+- **Onchain minimalism**: Only CID, kind, titleHash, unlockAt stored onchain
+- **Lost wallet = lost access**: By design. No recovery backdoor.
 
-## Complete Flow
-
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  CONNECT     │     │   WRITE      │     │   ENCRYPT    │     │   UPLOAD     │
-│  WALLET      │ ──> │   SECRET     │ ──> │ IN BROWSER   │ ──> │ TO LIGHTHOUSE│
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
-                                                                      │
-                                                                      ▼
-                                                               ┌──────────────┐
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     │ IPFS/FILECOIN│
-│  DECRYPT     │     │   FETCH      │     │   REGISTER   │     │   (CID)      │
-│  LOCALLY     │ <── │  CIPHERTEXT  │ <── │  CID ONCHAIN │ <── │              │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
-```
-
-### Step by Step
-
-1. **Connect Wallet** — User connects via RainbowKit (MetaMask, WalletConnect, etc.) to Filecoin Calibration testnet.
-
-2. **Write Secret** — User enters a secret (seed phrase, private key, message, etc.), a title, and a passphrase.
-
-3. **Encrypt in Browser** — `crypto.js` uses the Web Crypto API to:
-   - Derive an AES-256 key via PBKDF2-SHA256 (250,000 iterations) from the user's passphrase
-   - Generate a random 16-byte salt and 12-byte IV
-   - Encrypt the secret with AES-256-GCM
-   - Produce an `EncryptedPayload` with all parameters needed for future decryption
-
-4. **Upload to Lighthouse** — `lighthouse.js` serializes the `EncryptedPayload` to JSON and calls `lighthouse.uploadText()`, which uploads to IPFS and pins via Filecoin. Returns a CID.
-
-5. **Register CID Onchain** — `contract.js` calls `GrimoireRegistry.createInscription(cid, kind, titleHash)` on FEVM. The transaction records the CID and metadata onchain. A tiny amount of tFIL is consumed as gas.
-
-6. **Retrieve CID** — The frontend calls `getMyInscriptions()` to list all CIDs associated with the connected wallet.
-
-7. **Decrypt Locally** — The frontend fetches the encrypted payload from the Lighthouse gateway (or fallback IPFS gateways), and the user provides their passphrase to decrypt locally via the Web Crypto API. The plaintext is never persisted — it is shown in-memory and discarded on navigation.
-
-## Why Secrets Are Never Stored Plaintext or Onchain
-
-The blockchain is a public, append-only ledger. Every byte stored in a smart contract is visible to every node and every block explorer forever. Storing a plaintext seed phrase or private key onchain is equivalent to publishing it on the front page of a newspaper.
-
-Grimoire stores only the **CID** — an opaque hash pointing to an encrypted blob. The ciphertext on IPFS is useless without the passphrase. Even Lighthouse, as the storage provider, cannot decrypt the payload because it never receives the passphrase.
-
-This architecture ensures:
-- **No trusted third party** has access to secrets
-- **Blockchain immutability** provides a tamper-proof index of your inscriptions
-- **Filecoin's decentralized storage** provides durability and censorship resistance
-- **The user alone holds the keys** — literally
-
-## Security Boundaries
-
-| Boundary | Protected By |
-|----------|-------------|
-| Secret at rest | AES-256-GCM encryption |
-| Key derivation | PBKDF2-SHA256, 250,000 iterations |
-| Secret in transit | HTTPS (Lighthouse API) + already encrypted |
-| Onchain privacy | CID-only storage, no plaintext metadata |
-| Title privacy | SHA-256 hash stored, title never transmitted |
-| Wallet security | User's wallet (MetaMask, etc.) — Grimoire never requests private keys |
-
-## Project Structure
+## File Structure
 
 ```
-grimoire/
-├── contracts/               # Hardhat + Solidity
-│   ├── contracts/
-│   │   └── GrimoireRegistry.sol   # Onchain registry
-│   ├── scripts/
-│   │   └── deploy.cjs             # Deployment script
-│   ├── test/
-│   │   └── GrimoireRegistry.test.cjs  # Contract tests
-│   └── hardhat.config.cjs
+├── index.html              Entry point
+├── vite.config.js          Vite configuration
+├── package.json            Dependencies & scripts
+├── .env.example            Environment template
+│
 ├── src/
+│   ├── main.jsx            React entry (providers)
+│   ├── config.js           Wagmi/RainbowKit + constants
 │   ├── lib/
-│   │   ├── crypto.js          # Client-side encryption
-│   │   ├── lighthouse.js      # Lighthouse upload/fetch
-│   │   └── contract.js        # FEVM contract interaction
-│   ├── config.js              # RainbowKit, constants
-│   └── main.jsx               # App entry point
-├── index.html                 # SPA shell
-├── vite.config.js
-└── package.json
+│   │   ├── crypto.js       AES-256-GCM + wallet-signature key derivation
+│   │   ├── lighthouse.js   Pinata upload/fetch (JSON + files)
+│   │   ├── contract.js     Onchain read integration
+│   │   └── templates.js    5 pre-built inscription templates
+│   └── components/
+│       ├── WalletConnect.jsx
+│       ├── InscribeForm.jsx   Form with templates, file upload, time-lock, seed grid
+│       └── RevealModal.jsx    Decrypt via wallet signature
+│
+├── icons.jsx               SVG icon components
+├── i18n.jsx                EN/ES dictionaries + LangProvider
+├── sections.jsx            Landing page (9 sections)
+├── shell.jsx               App shell (TopBar + Sidebar)
+├── screen-vault.jsx        Vault dashboard (real contract data)
+├── screen-inscribe.jsx     Inscribe landing
+├── screen-chapters.jsx     Chapter organization
+├── screen-keepers.jsx      Heir configuration
+├── screen-shared.jsx       Shared access
+├── screen-activity.jsx     Onchain event log
+├── screen-settings.jsx     Language + network settings
+├── screen-disconnect.jsx   Wallet disconnect
+├── screen-proof.jsx        Public proof-of-life page
+├── screen-recovery.jsx     Recovery guide (EN/ES)
+├── screen-manifesto.jsx    Manifesto (EN/ES)
+├── screen-keep.jsx         What to Keep (Phase 2)
+├── screen-inheritance.jsx  Inheritance (Phase 3)
+├── screen-heirs.jsx        Heir Settings (Phase 3)
+├── app.jsx                 Hash-based router
+├── styles.css              Landing page styles
+├── apartados.css           App shell styles
+│
+├── contracts/
+│   ├── contracts/GrimoireRegistry.sol
+│   ├── scripts/deploy.cjs
+│   ├── test/GrimoireRegistry.test.cjs
+│   └── hardhat.config.cjs
+│
+├── docs/                   Documentation
+└── assets/                 Videos, images, icon
 ```

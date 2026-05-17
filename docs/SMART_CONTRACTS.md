@@ -1,230 +1,161 @@
-# Grimoire Smart Contracts
+# GrimoireRegistry — Smart Contract v2
 
-Grimoire uses a single smart contract, `GrimoireRegistry.sol`, deployed on the Filecoin Calibration testnet via FEVM (Filecoin Ethereum Virtual Machine). The contract serves as an immutable, public registry of inscription metadata — it stores only opaque references, never secrets.
+- **Network:** Filecoin Calibration (testnet, chain ID 314159)
+- **Address:** `0xCEa33B5Edb8B5eb982aDB05e4ED30B764081B490`
+- **Solidity:** ^0.8.20
+- **Framework:** Hardhat 2.22
+- **Tests:** 5/5 passing
 
-## GrimoireRegistry.sol
+## Data Structures
 
-**Language**: Solidity ^0.8.20
-**License**: MIT
-**Network**: Filecoin Calibration (chainId: 314159)
-
-### Data Structure
-
+### Inscription
 ```solidity
 struct Inscription {
-    address owner;
-    string cid;
-    string kind;
-    string titleHash;
-    uint256 createdAt;
+    address owner;       // Creator wallet
+    string cid;          // IPFS content identifier (encrypted payload)
+    string kind;         // seed-phrase | private-key | document | letter | note
+    string titleHash;    // SHA-256 of title (title never stored plaintext)
+    uint256 createdAt;   // Block timestamp of creation
+    uint256 unlockAt;    // 0 = no time-lock, otherwise Unix timestamp
+    bool revoked;        // Soft delete flag
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `owner` | `address` | Wallet address that created the inscription |
-| `cid` | `string` | IPFS Content Identifier pointing to the encrypted payload |
-| `kind` | `string` | Inscription type (e.g. "seed-phrase", "private-key", "letter") |
-| `titleHash` | `string` | SHA-256 hash of the user's title (title is never stored in plaintext) |
-| `createdAt` | `uint256` | Unix timestamp (block timestamp) when the inscription was created |
-
-### Storage
-
+### HeirConfig
 ```solidity
-mapping(address => Inscription[]) private inscriptions;
-uint256 public totalInscriptions;
+struct HeirConfig {
+    address[] heirs;        // Designated heir wallets
+    uint8 threshold;        // M-of-N signatures required
+    uint256 dormancyPeriod; // Seconds of inactivity before claim possible
+    uint256 lastPing;       // Owner's last activity timestamp
+}
 ```
 
-Inscriptions are stored in a mapping from owner address to an array of `Inscription` structs. Only the contract can read the mapping directly; external callers use the getter functions.
+## Functions
 
-### Functions
-
-#### createInscription
-
+### createInscription
 ```solidity
 function createInscription(
     string calldata cid,
     string calldata kind,
-    string calldata titleHash
-) external;
+    string calldata titleHash,
+    uint256 unlockAt
+) external
 ```
+Creates a new inscription. Validates: CID not empty, kind not empty. Emits `InscriptionCreated`.
 
-Creates a new inscription for `msg.sender`. Validates that `cid` and `kind` are non-empty. Emits `InscriptionCreated`.
-
-| Parameter | Description |
-|-----------|-------------|
-| `cid` | IPFS CID — must be non-empty |
-| `kind` | Inscription type — must be non-empty |
-| `titleHash` | SHA-256 hash of the title (hex-encoded, `0x`-prefixed) |
-
-Gas cost: paid in tFIL by `msg.sender`. Typical cost is minimal (the function only stores a few strings in a dynamic array).
-
-#### getMyInscriptions
-
+### getMyInscriptions
 ```solidity
-function getMyInscriptions() external view returns (Inscription[] memory);
+function getMyInscriptions() external view returns (Inscription[] memory)
 ```
+Returns all inscriptions for the caller.
 
-Returns all inscriptions owned by the caller. This is a `view` function — no gas cost.
-
-#### getInscriptions
-
+### getInscriptions
 ```solidity
-function getInscriptions(address owner) external view returns (Inscription[] memory);
+function getInscriptions(address owner) external view returns (Inscription[] memory)
 ```
+Returns all inscriptions for any address. Used by Proof page.
 
-Returns all inscriptions for a given address. Allows looking up another user's public inscription metadata (CIDs, kinds, title hashes are visible to everyone — but ciphertext remains encrypted).
-
-#### getMyInscriptionCount
-
+### revokeInscription
 ```solidity
-function getMyInscriptionCount() external view returns (uint256);
+function revokeInscription(uint256 index) external
 ```
+Soft-deletes an inscription. Sets `revoked = true`. Content remains on IPFS.
 
-Returns the number of inscriptions owned by the caller.
-
-### Events
-
-#### InscriptionCreated
-
+### ping
 ```solidity
-event InscriptionCreated(
-    address indexed owner,
-    string cid,
-    string kind,
-    string titleHash,
-    uint256 createdAt
-);
+function ping() external
 ```
+Proof of life. Resets `lastPing` in HeirConfig. Emits `Pinged`. Called automatically on every inscription creation/edit.
 
-Emitted when `createInscription` succeeds. The `owner` parameter is indexed, allowing efficient filtering by address in block explorers and event listeners.
-
-## Frontend Integration
-
-The frontend communicates with the contract via **viem** through wagmi's `writeContract` and `readContract` functions (`src/lib/contract.js`). The ABI is defined client-side to avoid a build-time dependency on Hardhat artifacts.
-
-```javascript
-// Writing (requires wallet signature + gas)
-const txHash = await registerCidOnchain(cid, kind, titleHash);
-
-// Reading (no gas, no signature)
-const inscriptions = await readMyInscriptions();
+### configureHeirs
+```solidity
+function configureHeirs(
+    address[] calldata heirs,
+    uint8 threshold,
+    uint256 dormancyPeriod
+) external
 ```
+Sets heir configuration. Validates: at least 1 heir, threshold between 1 and count.
 
-## Network: Filecoin Calibration
+### isDormant
+```solidity
+function isDormant(address owner) external view returns (bool)
+```
+Returns true if owner's `lastPing + dormancyPeriod < now`.
 
-| Property | Value |
-|----------|-------|
-| Network name | `calibration` (in Hardhat config) |
-| Chain ID | `314159` |
-| RPC | `https://api.calibration.node.glif.io/rpc/v1` |
-| Gas token | tFIL |
+## Events
 
-tFIL has no real-world value. Faucets are available to obtain test FIL:
-- [beryx.zondax.ch/faucet](https://beryx.zondax.ch/faucet)
-- [faucet.calibration.fildev.network](https://faucet.calibration.fildev.network)
+- `InscriptionCreated(address indexed owner, string cid, string kind, string titleHash, uint256 createdAt, uint256 unlockAt)`
+- `InscriptionRevoked(uint256 indexed id)`
+- `Pinged(address indexed owner, uint256 timestamp)`
+- `HeirsConfigured(address indexed owner, uint8 threshold, uint256 dormancyPeriod)`
+
+## Security
+
+- No secrets stored onchain (only CID, kind, titleHash)
+- Title is SHA-256 hashed before storage
+- All `external` functions have proper access control
+- No re-entrancy concerns (no ETH transfers)
+- Events enable off-chain indexing without scanning state
 
 ## Deployment
 
-### Prerequisites
-
 ```bash
 cd contracts
-npm install
-cp ../.env.example ../.env    # Set PRIVATE_KEY in .env
-```
-
-### Compile
-
-```bash
 npx hardhat compile
-```
-
-Compiled artifacts are output to `contracts/artifacts/`.
-
-### Test
-
-```bash
-npx hardhat test
-```
-
-Tests cover: inscription creation, multiple users, empty CID rejection, empty kind rejection. See `contracts/test/GrimoireRegistry.test.cjs`.
-
-### Deploy to Calibration
-
-```bash
+npx hardhat test                    # 5/5 tests
 npx hardhat run scripts/deploy.cjs --network calibration
 ```
 
-The script deploys the contract and prints the deployed address. Copy this address to the frontend `.env`:
+### Test Coverage
+- ✅ Creates inscription correctly
+- ✅ Returns inscriptions for caller
+- ✅ Multiple users can create inscriptions
+- ✅ Fails with empty CID
+- ✅ Fails with empty kind
 
-```
-VITE_GRIMOIRE_CONTRACT_ADDRESS=0x...
-```
+## Explorers
 
-The deployer wallet (configured via `PRIVATE_KEY` in `.env`) must have tFIL for gas. Use a tFIL faucet if needed.
+- https://calibration.filfox.info/address/0xCEa33B5Edb8B5eb982aDB05e4ED30B764081B490
+- https://beryx.zondax.ch
+- https://calibration.filscan.io
 
-### Deploy to Mainnet (Future)
+## Contract ABI (Frontend)
 
-```bash
-# Add to hardhat.config.cjs:
-# mainnet: { url: "https://api.node.glif.io/rpc/v1", accounts: [PRIVATE_KEY], chainId: 314 }
-
-npx hardhat run scripts/deploy.cjs --network mainnet
-```
-
-## Verifying Transactions on Block Explorers
-
-After creating an inscription, the transaction hash can be viewed on any Calibration block explorer:
-
-- **Beryx**: `https://beryx.zondax.ch/tx/{txHash}` — Shows full trace, events, and internal calls
-- **Filfox**: `https://calibration.filfox.info/en/message/{txHash}` — Fast, clean UI
-- **Filscan**: `https://calibration.filscan.io/message/{txHash}` — Alternative explorer
-
-The `InscriptionCreated` event will be visible in the transaction logs, showing the registered CID, kind, and titleHash.
-
-## Title Hashing
-
-Titles are **SHA-256 hashed** before being stored onchain. The plaintext title never leaves the browser and is never stored anywhere.
+The frontend uses a minimal ABI for `createInscription` and `getMyInscriptions`:
 
 ```javascript
-// src/lib/crypto.js
-export async function hashText(text) {
-  const enc = new TextEncoder();
-  const hashBuf = await crypto.subtle.digest('SHA-256', enc.encode(text));
-  const hashArr = Array.from(new Uint8Array(hashBuf));
-  return '0x' + hashArr.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+const ABI = [
+  {
+    inputs: [
+      { name: 'cid', type: 'string' },
+      { name: 'kind', type: 'string' },
+      { name: 'titleHash', type: 'string' },
+      { name: 'unlockAt', type: 'uint256' }
+    ],
+    name: 'createInscription',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getMyInscriptions',
+    outputs: [{
+      components: [
+        { name: 'owner', type: 'address' },
+        { name: 'cid', type: 'string' },
+        { name: 'kind', type: 'string' },
+        { name: 'titleHash', type: 'string' },
+        { name: 'createdAt', type: 'uint256' },
+        { name: 'unlockAt', type: 'uint256' },
+        { name: 'revoked', type: 'bool' }
+      ],
+      name: '', type: 'tuple[]'
+    }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+];
 ```
-
-The hash is stored as a `0x`-prefixed hex string onchain. This allows the user to verify that a title matches an inscription (by re-hashing and comparing) without exposing the plaintext title to the blockchain.
-
-The contract does not enforce any particular hashing algorithm — it accepts any string as `titleHash`. The convention is SHA-256, enforced by the frontend.
-
-## Design Decisions
-
-### Why a Single Contract?
-
-A single `GrimoireRegistry` contract is sufficient for the MVP. Inscriptions are naturally partitioned by `owner` address. A monolithic registry avoids the overhead of factory patterns and simplifies deployment, verification, and frontend integration.
-
-### Why Strings for CID and Kind?
-
-CIDs are strings (e.g., `bafybeig7xvk3m9p2nqf4z8...`), not `bytes`. Solidity does not have a native CID type. Using `string` is the standard approach in Filecoin smart contracts. Gas cost for storing a ~60-character CID is acceptable on Calibration and Mainnet.
-
-### Why No Deletion or Update?
-
-Inscriptions are immutable by design. Once created, an inscription cannot be modified or deleted. This mirrors the blockchain's append-only nature and ensures a verifiable, tamper-proof history. If you want to "delete" something, create a new inscription that obsoletes the old one — but the old CID and its encrypted payload remain on Filecoin as long as storage deals are active.
-
-## Future Enhancements (Phase 3+)
-
-### Inheritance / Dead-Man's Switch
-
-The contract will be extended to support a "last active" timestamp and a beneficiary address. If the owner does not send a heartbeat transaction within a configured period (e.g., 1 year), the beneficiary can claim ownership of the inscriptions. This enables passing secrets to heirs or trusted contacts.
-
-### Multisig Heirs
-
-For shared inheritance, a multisig scheme can be implemented where N of M designated heirs must agree to trigger the inheritance claim. This could be implemented as either a native Solidity multisig on the contract or integrated with an existing multisig wallet (e.g., SAFE on FEVM).
-
-### Pagination
-
-`getMyInscriptions` currently returns the full array. For users with many inscriptions, pagination will be added via `getInscriptionsPaginated(address owner, uint256 offset, uint256 limit)`.

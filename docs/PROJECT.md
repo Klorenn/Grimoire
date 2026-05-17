@@ -1,186 +1,77 @@
 # Grimoire — Project Documentation
 
-## Overview
+## What is Grimoire?
 
-Grimoire is a Web3 encrypted vault on Filecoin. Users store their most precious data (seed phrases, private keys, documents, letters, notes) encrypted client-side, stored on Filecoin/IPFS via Lighthouse, and registered onchain via FEVM smart contracts.
+Grimoire is a **Web3 encrypted vault on Filecoin**. Users inscribe their most precious data — seed phrases, private keys, documents, letters to loved ones — encrypted client-side with their wallet, stored permanently on Filecoin, registered onchain via FEVM.
 
-**No backend. No database. No server.** Everything happens in the browser.
+**No backend. No database. No server. No passphrase.** Everything happens in the browser. Your wallet is your key.
 
----
+## Three Pillars
+
+1. **Encrypted client-side** — AES-256-GCM in the browser. Content never leaves unencrypted.
+2. **Stored on Filecoin** — Pinata → IPFS → Filecoin. Cryptographic proofs every 24h.
+3. **Anchored onchain via FEVM** — GrimoireRegistry smart contract on Filecoin Calibration.
+
+## Features
+
+| Category | Features |
+|----------|----------|
+| Encryption | Wallet-signature key derivation, AES-256-GCM, deterministic per wallet |
+| Inscriptions | 5 types: seed phrase, private key, document, letter, note |
+| Seed phrase | 12/24 word grid, paste detection |
+| Files | PDF, images, scans — encrypted before upload |
+| Templates | 5 pre-built: Letter, Inventory, Funeral, Emergency, Recovery |
+| Time-lock | Optional unlock date per inscription, live countdown in vault |
+| Chapters | Folder organization (assigned during creation) |
+| Heirs | Configure keeper wallets, threshold, dormancy period |
+| Activity | Onchain event log (InscriptionCreated, Pinged, HeirsConfigured) |
+| Proof of life | Public page showing inscription count without revealing content |
+| i18n | Full EN/ES translation across all 15+ screens |
+| Wallet | RainbowKit + wagmi + viem, Filecoin Calibration (314159) |
+| Storage | Pinata free tier, instant IPFS upload + download |
 
 ## Architecture
 
 ```
-Browser (AES-256-GCM) → Lighthouse → Filecoin/IPFS
-                         ↓
-                    FEVM Smart Contract (CID registry)
+Browser (AES-256-GCM + wallet signature) → Pinata → IPFS/Filecoin
+                                              ↓
+                                    FEVM GrimoireRegistry v2
 ```
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18 + Vite 5 |
-| Styling | Tailwind CSS v4 CDN + custom CSS |
-| Wallet | RainbowKit 2.2 + wagmi 2 + viem 2 |
-| Encryption | Web Crypto API (AES-256-GCM, PBKDF2, SHA-256) |
-| Storage | @lighthouse-web3/sdk → IPFS/Filecoin |
-| Smart Contract | Solidity 0.8.20 + Hardhat 2.22 |
-| Blockchain | Filecoin Calibration (testnet, chain 314159) |
-| i18n | Custom React context (EN / ES) |
+Read the full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
----
-
-## All Sections
-
-### Landing Page (`/`)
-
-| Section | Description |
-|---------|-------------|
-| Navbar | Fixed top, transparent → glass on scroll. Wallet connect, lang toggle, nav links |
-| Hero | Full-bleed video background, headline reveal, CTA button |
-| Problem | "Paper burns. Drives fail. Companies fade." — 3 cards + visual |
-| Solution | "A grimoire that cannot be burned" — flow diagram |
-| Features | 3×2 grid: seed phrases, private keys, documents, ledger, letters, notes |
-| Compare | Table: iCloud vs Notion vs Hardware wallet vs Grimoire |
-| Science | "How the magic works" — encryption/storage/onchain explainer |
-| Testimonials | 3 quotes from pseudonymous keepers |
-| Pricing | Free (Apprentice) + $12/mo (Keeper) tiers |
-| Footer | Links, social (X, GitHub, Telegram), brand |
-
-### Apartados (Inner Pages)
-
-| Route | Page | Status |
-|-------|------|--------|
-| `#/vault` | Open Grimoire | ✅ Live — real contract data, inscription form, reveal modal |
-| `#/keep` | What to Keep | 🔲 Coming in Phase 2 |
-| `#/inheritance` | Inheritance | 🔲 Coming in Phase 3 |
-| `#/heirs` | Heir Settings | 🔲 Coming in Phase 3 |
-| `#/recovery` | Recovery Guide | ✅ Live — 4-step guide (EN/ES) |
-| `#/manifesto` | Manifesto | ✅ Live — full text (EN/ES) |
-
----
-
-## User Flow
-
-1. **Landing** → browse the landing page
-2. **Connect Wallet** → RainbowKit modal (MetaMask, Rabby, WalletConnect)
-3. **Enter Vault** → click wallet address or "Comenzar" button
-4. **New Inscription** → fill title, kind, secret, passphrase
-5. **Encrypt** → AES-256-GCM in browser, never leaves device
-6. **Upload** → Lighthouse SDK → Filecoin/IPFS → CID
-7. **Register** → `createInscription(cid, kind, titleHash)` on FEVM
-8. **List** → `getMyInscriptions()` reads from contract
-9. **Reveal** → enter passphrase → download CID → decrypt locally
-
----
-
-## Security Model
-
-| Data | Where | Plaintext? |
-|------|-------|-----------|
-| Secret content | Browser memory only | Yes (temporary) |
-| Encrypted payload | Filecoin/IPFS (Lighthouse) | No |
-| CID | FEVM smart contract | Yes |
-| Kind | FEVM smart contract | Yes |
-| Title hash | FEVM smart contract | Yes (SHA-256) |
-| Title | Nowhere | No |
-| Passphrase | Browser memory only | Yes (temporary) |
-| Wallet key | Wallet extension | Yes (wallet) |
-
-**Nothing is ever stored plaintext in localStorage, sessionStorage, cookies, or any server.**
-
----
-
-## File Structure
-
-```
-├── index.html              Entry point
-├── vite.config.js          Vite configuration
-├── package.json            Dependencies & scripts
-├── .env.example            Environment template
-│
-├── src/
-│   ├── main.jsx            React entry (providers)
-│   ├── config.js           Wagmi/RainbowKit + constants
-│   ├── lib/
-│   │   ├── crypto.js       AES-256-GCM encryption/decryption
-│   │   ├── lighthouse.js   Filecoin/IPFS upload/fetch
-│   │   └── contract.js     Onchain read integration
-│   └── components/
-│       ├── WalletConnect.jsx  Connect/disconnect buttons
-│       ├── InscribeForm.jsx   Inscription creation form
-│       └── RevealModal.jsx    Decrypt/reveal modal
-│
-├── icons.jsx               SVG icon components (Ghibli-style + lucide)
-├── i18n.jsx                EN/ES dictionaries + LangProvider
-├── sections.jsx            Landing page sections (Navbar→Footer)
-├── shell.jsx               App shell layout (TopBar + Sidebar)
-├── screen-vault.jsx        Vault dashboard (real data)
-├── screen-keep.jsx         What to Keep (Phase 2)
-├── screen-inheritance.jsx  Inheritance (Phase 3)
-├── screen-heirs.jsx        Heir Settings (Phase 3)
-├── screen-recovery.jsx     Recovery Guide
-├── screen-manifesto.jsx    Manifesto
-├── app.jsx                 Hash-based router
-├── styles.css              Landing page styles
-├── apartados.css           App shell styles
-│
-├── contracts/
-│   ├── contracts/GrimoireRegistry.sol
-│   ├── scripts/deploy.cjs
-│   ├── test/GrimoireRegistry.test.cjs
-│   └── hardhat.config.cjs
-│
-├── docs/                   Documentation
-└── assets/                 Videos, images
-```
-
----
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `VITE_LIGHTHOUSE_API_KEY` | Lighthouse API key for Filecoin uploads |
-| `VITE_GRIMOIRE_CONTRACT_ADDRESS` | Deployed GrimoireRegistry address |
-| `VITE_FILECOIN_CALIBRATION_RPC_URL` | Filecoin Calibration RPC endpoint |
-| `PRIVATE_KEY` | Deployer wallet private key (contracts only) |
-| `FILECOIN_CALIBRATION_RPC_URL` | RPC for Hardhat deploy |
-
----
-
-## Commands
+## Quick Start
 
 ```bash
-# Frontend
 npm install --legacy-peer-deps
-npm run dev          # http://localhost:3000
-npm run build        # Production build → dist/
-
-# Contracts
-cd contracts
-npm install --legacy-peer-deps
-npx hardhat compile
-npx hardhat test     # 5/5 tests
-npx hardhat run scripts/deploy.cjs --network calibration
+cp .env.example .env   # Set VITE_PINATA_JWT
+npm run dev            # http://localhost:3000
 ```
 
----
+Read the full development guide: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 
-## Contract
+## Documentation
 
-**GrimoireRegistry** — `0x3f0bF9B29F276CD3219995d434621b2C70a91267` on Filecoin Calibration
+| Doc | Content |
+|-----|---------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Full architecture, stack, data flow, onchain vs offchain |
+| [APARTADOS.md](docs/APARTADOS.md) | Detailed guide for every screen and section |
+| [CRYPTO.md](docs/CRYPTO.md) | Encryption model, key derivation, threat model |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Setup, commands, troubleshooting |
+| [SMART_CONTRACTS.md](docs/SMART_CONTRACTS.md) | Contract v2: structs, functions, events, deployment |
+| [FILECOIN.md](docs/FILECOIN.md) | Filecoin explanation, Calibration testnet |
+| [STORAGE.md](docs/STORAGE.md) | EncryptedPayload format, upload/fetch flows |
+| [SECURITY.md](docs/SECURITY.md) | Threat model, security properties |
+| [ROADMAP.md](docs/ROADMAP.md) | Phase 1-4 milestones |
+| [REFERENCES.md](docs/REFERENCES.md) | All external docs and repos |
 
-Stores per inscription:
-- `owner` (address)
-- `cid` (IPFS content identifier)
-- `kind` (seed-phrase | private-key | document | letter | note)
-- `titleHash` (SHA-256, title never stored plaintext)
-- `createdAt` (block timestamp)
+## Contracts
 
-Functions: `createInscription`, `getMyInscriptions`, `getInscriptions`
+| Network | Address |
+|---------|---------|
+| Filecoin Calibration (testnet) | `0xCEa33B5Edb8B5eb982aDB05e4ED30B764081B490` |
+| Filecoin Mainnet | Future |
 
----
+## License
 
-## i18n
-
-Dual-language support via `LangProvider` context. All landing page text, vault UI, recovery guide, and manifesto are translated. Language persists in localStorage under `grimoire-lang`.
+MIT
