@@ -171,6 +171,24 @@ export function InscribeForm({ onClose, onSuccess }) {
       </div>
       {error && <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 10, background: 'rgba(164,88,74,0.1)', border: '1px solid rgba(164,88,74,0.2)', color: '#A4584A', fontSize: '0.85rem' }}>{error}</div>}
 
+      {/* Step indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        {['Content', 'Access', 'Seal'].map((label, idx) => (
+          <React.Fragment key={label}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 600,
+                background: idx === 0 ? 'linear-gradient(180deg, var(--gold), var(--gold-warm))' : 'color-mix(in srgb, var(--ink) 8%, transparent)',
+                color: idx === 0 ? 'var(--parchment)' : 'var(--ink-soft)',
+              }}>{idx + 1}</div>
+              <span style={{ fontSize: '0.75rem', color: idx === 0 ? 'var(--ink)' : 'var(--ink-soft)', fontFamily: 'var(--font-body)' }}>{label}</span>
+            </div>
+            {idx < 2 && <span style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--ink) 8%, transparent)' }} />}
+          </React.Fragment>
+        ))}
+      </div>
+
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div><label className="kv-key">{i.title}</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={i.placeholder.title} autoComplete="off" style={inputStyle} /></div>
         

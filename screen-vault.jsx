@@ -73,8 +73,12 @@ function ScreenVault() {
   }
 
   const kindLabel = (k) => {
-    const labels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note' };
+    const labels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note', 'photo': 'Photo' };
     return labels[k] || k;
+  };
+  const kindColor = (k) => {
+    const colors = { 'seed-phrase': 'var(--gold)', 'private-key': 'var(--gold-warm)', 'document': 'var(--sky-deep)', 'letter': 'var(--grass)', 'note': 'var(--ink-soft)', 'photo': 'var(--gold)' };
+    return colors[k] || 'var(--ink-soft)';
   };
 
   const formatDate = (ts) => {
@@ -155,7 +159,7 @@ function ScreenVault() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, padding: '12px 20px 20px' }}>
               {[...filtered].reverse().map((ins, i) => (
-                <article key={i} className="app-card" style={{ padding: 18, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+                <article key={i} className="app-card" style={{ padding: 18, display: 'flex', flexDirection: 'column', cursor: 'pointer', borderLeft: `3px solid ${kindColor(ins.kind)}` }}
                   onClick={() => setReveal({ cid: ins.cid, kind: ins.kind })}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div className="icon-tile" style={{ width: 42, height: 42 }}>
