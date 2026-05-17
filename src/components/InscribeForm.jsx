@@ -171,7 +171,7 @@ export function InscribeForm({ onClose, onSuccess }) {
         </div></div>
 
         <div>
-          <label className="kv-key">Quick template</label>
+          <label className="kv-key">{i.templateLabel}</label>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
             {TEMPLATES.map(tmpl => (
               <button key={tmpl.id} type="button" className="chip"
@@ -182,14 +182,14 @@ export function InscribeForm({ onClose, onSuccess }) {
           </div>
         </div>
 
-        <div><label className="kv-key">Chapter (optional)</label><input type="text" value={chapter} onChange={e => setChapter(e.target.value)} placeholder="e.g. Family, Crypto, Legal" autoComplete="off" style={inputStyle} /></div>
+        <div><label className="kv-key">{i.chapter}</label><input type="text" value={chapter} onChange={e => setChapter(e.target.value)} placeholder={i.chapterPlaceholder} autoComplete="off" style={inputStyle} /></div>
 
         {kind === 'seed-phrase' ? (
           <div>
             <label className="kv-key">Seed phrase</label>
             <div style={{ display: 'flex', gap: 8, marginTop: 4, marginBottom: 10 }}>
-              <button type="button" className={`chip ${seedCount === 12 ? 'gold' : ''}`} onClick={() => handleSeedCountChange(12)}>12 words</button>
-              <button type="button" className={`chip ${seedCount === 24 ? 'gold' : ''}`} onClick={() => handleSeedCountChange(24)}>24 words</button>
+              <button type="button" className={`chip ${seedCount === 12 ? 'gold' : ''}`} onClick={() => handleSeedCountChange(12)}>{i.words12}</button>
+              <button type="button" className={`chip ${seedCount === 24 ? 'gold' : ''}`} onClick={() => handleSeedCountChange(24)}>{i.words24}</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
               {seedWords.map((w, idx) => (
@@ -206,17 +206,17 @@ export function InscribeForm({ onClose, onSuccess }) {
         )}
 
         <div>
-          <label className="kv-key">Time-lock (optional)</label>
+          <label className="kv-key">{i.timeLock}</label>
           <input type="date" value={unlockDate} onChange={e => setUnlockDate(e.target.value)} min={new Date().toISOString().split('T')[0]}
             style={{ ...inputStyle, width: 'auto', minWidth: 200 }} />
           <div style={{ fontSize: '0.7rem', color: 'var(--ink-soft)', marginTop: 4 }}>
-            {unlockDate ? `⏳ This inscription will be locked until ${unlockDate}` : 'Leave empty for immediate access'}
+            {unlockDate ? `${i.timeLockActive} ${unlockDate}` : i.timeLockHint}
           </div>
         </div>
 
         {kind === 'document' && (
           <div>
-            <label className="kv-key">File (PDF, image, scan)</label>
+            <label className="kv-key">{i.fileLabel}</label>
             <input type="file" onChange={e => setUploadFile(e.target.files?.[0] || null)}
               style={{ ...inputStyle, fontFamily: 'var(--font-body)', fontSize: '0.82rem' }} />
             {uploadFile && <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', marginTop: 4 }}>{uploadFile.name} · {(uploadFile.size / 1024).toFixed(1)} KB</div>}
@@ -227,7 +227,7 @@ export function InscribeForm({ onClose, onSuccess }) {
           ⚠️ Your wallet signature generates a deterministic key. Same wallet = same key. <strong>Lose your wallet, lose access.</strong>
         </div>
         <button type="submit" className="app-btn gold" disabled={!isConnected} style={{ justifyContent: 'center', marginTop: 8 }}>
-          {isConnected ? 'Sign & ✦ Inscribe' : i.ctaDisconnected}
+          {isConnected ? i.cta2 : i.ctaDisconnected}
         </button>
       </form>
     </div>
