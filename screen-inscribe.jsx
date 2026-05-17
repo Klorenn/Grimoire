@@ -1,15 +1,32 @@
 import React from 'react';
-import { useT } from './i18n.jsx';
+import { AppShell, PageHead } from './shell.jsx';
 
 function ScreenInscribe() {
-  const { t } = useT();
   return (
-    <div style={{ padding: 60, textAlign: 'center' }}>
-      <div style={{ fontSize: 40, marginBottom: 16, color: 'var(--gold-warm)' }}>✦</div>
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--ink)', fontWeight: 500 }}>Inscribe</h2>
-      <p style={{ margin: '12px auto 0', color: 'var(--ink-soft)', fontSize: '0.95rem', maxWidth: 480 }}>Go to the Vault to create a new inscription.</p>
-      <button className="app-btn gold" style={{ marginTop: 24 }} onClick={() => window.location.hash = '#/vault'}>Open your vault →</button>
-    </div>
+    <AppShell active="inscribe" crumbs={['HOME', 'INSCRIBE']}>
+      <PageHead eyebrow="" title="<em>Inscribe</em>" sub="Create a new inscription — text, seed phrase, or file. Go to the Vault and click '+ New inscription' to begin." />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+        {[
+          { icon: '✦', title: 'Seed phrase', sub: '12 or 24 words · encrypted with your wallet', color: 'var(--gold)' },
+          { icon: '🔑', title: 'Private key', sub: 'Any chain · paste securely', color: 'var(--gold-warm)' },
+          { icon: '📄', title: 'Document', sub: 'PDF, images, scans · encrypted before upload', color: 'var(--sky-deep)' },
+          { icon: '✉️', title: 'Letter', sub: 'Time-locked · opens on a future date', color: 'var(--grass)' },
+          { icon: '📝', title: 'Private note', sub: 'Markdown · journal · daily entries', color: 'var(--ink-soft)' },
+          { icon: '🖼️', title: 'Photo', sub: 'Upload images · auto-thumbnail', color: 'var(--gold)' },
+        ].map((item) => (
+          <div key={item.title} className="app-card" style={{ padding: 22, borderLeft: `3px solid ${item.color}` }}>
+            <div style={{ fontSize: 28, marginBottom: 10 }}>{item.icon}</div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--ink)', fontWeight: 500 }}>{item.title}</h3>
+            <p style={{ marginTop: 6, color: 'var(--ink-soft)', fontSize: '0.85rem', lineHeight: 1.5 }}>{item.sub}</p>
+          </div>
+        ))}
+      </div>
+      <div className="app-card" style={{ marginTop: 18, padding: 20, textAlign: 'center' }}>
+        <button className="app-btn gold" onClick={() => window.location.hash = '#/vault'}>
+          Open vault + New inscription →
+        </button>
+      </div>
+    </AppShell>
   );
 }
 export { ScreenInscribe };
