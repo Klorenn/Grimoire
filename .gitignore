@@ -8,3 +8,7 @@ contracts/cache/
 contracts/typechain-types/
 uploads/
 .agents/
+.next/
+.next/
+.next/
+**/.next/
