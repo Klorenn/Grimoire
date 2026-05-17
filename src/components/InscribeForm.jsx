@@ -122,7 +122,7 @@ export function InscribeForm({ onClose, onSuccess }) {
       {error && <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 10, background: 'rgba(164,88,74,0.1)', border: '1px solid rgba(164,88,74,0.2)', color: '#A4584A', fontSize: '0.85rem' }}>{error}</div>}
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div><label className="kv-key">{i.title}</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={i.placeholder.title} style={inputStyle} /></div>
+        <div><label className="kv-key">{i.title}</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={i.placeholder.title} autoComplete="off" style={inputStyle} /></div>
         <div><label className="kv-key">{i.kind}</label><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
           {KIND_IDS.map((k, idx) => <button key={k} type="button" className={`chip ${kind === k ? 'gold' : ''}`} onClick={() => setKind(k)}>{i.kinds[idx]}</button>)}
         </div></div>
