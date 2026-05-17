@@ -153,64 +153,29 @@ function ScreenVault() {
               </button>
             </div>
           ) : (
-            <table className="app-table">
-              <thead>
-                <tr>
-                  <th style={{ paddingLeft: 20 }}>Kind</th>
-                  <th>Chapter</th>
-                  <th>CID</th>
-                  <th>Created</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...filtered].reverse().map((ins, i) => (
-                  <tr key={i} className="hover-row">
-                    <td style={{ paddingLeft: 20 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="icon-tile" style={{ transform: 'scale(0.65)', width: 44, height: 44 }}>
-                          {INS_ICONS[ins.kind] || <IconNote />}
-                        </div>
-                        <div>
-                          <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.98rem', color: 'var(--ink)', fontWeight: 500 }}>
-                            {kindLabel(ins.kind)} {ins.unlockAt && Number(ins.unlockAt) > 0 && <Countdown unlockAt={ins.unlockAt} />}
-                          </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--ink-soft)', marginTop: 1 }}>
-                            Created {formatDate(ins.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--ink-soft)' }}>—</span>
-                    </td>
-                    <td>
-                      <a
-                        href={getGatewayUrl(ins.cid)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ fontFamily: 'var(--font-mono)', fontSize: '0.76rem', color: 'var(--ink)', textDecoration: 'none' }}
-                        title={ins.cid}
-                      >
-                        {ins.cid.slice(0, 12)}...
-                      </a>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>{formatDate(ins.createdAt)}</span>
-                    </td>
-                    <td>
-                      <button
-                        className="app-btn ghost"
-                        style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                        onClick={() => setReveal({ cid: ins.cid, kind: ins.kind })}
-                      >
-                        Reveal
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, padding: '12px 20px 20px' }}>
+              {[...filtered].reverse().map((ins, i) => (
+                <article key={i} className="app-card" style={{ padding: 18, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+                  onClick={() => setReveal({ cid: ins.cid, kind: ins.kind })}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div className="icon-tile" style={{ width: 42, height: 42 }}>
+                      <span style={{ transform: 'scale(0.6)', display: 'inline-flex' }}>{INS_ICONS[ins.kind] || <IconNote />}</span>
+                    </div>
+                    {ins.unlockAt && Number(ins.unlockAt) > 0 && <Countdown unlockAt={ins.unlockAt} />}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: 'var(--ink)', fontWeight: 500, lineHeight: 1.2 }}>
+                    {kindLabel(ins.kind)}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', marginTop: 6, flex: 1 }}>
+                    {formatDate(ins.createdAt)}
+                  </div>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed color-mix(in srgb, var(--ink) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--ink-soft)' }}>{ins.cid.slice(0, 10)}...</span>
+                    <span style={{ color: 'var(--gold-warm)', fontSize: '0.78rem', fontWeight: 500 }}>Reveal →</span>
+                  </div>
+                </article>
+              ))}
+            </div>
           )}
         </section>
 
