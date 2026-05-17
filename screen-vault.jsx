@@ -25,7 +25,7 @@ const INS_ICONS = {
 
 function ScreenVault() {
   const { isConnected, address } = useAccount();
-  const { t } = useT();
+  const { t, lang } = useT();
   const v = t.vault;
   const [showForm, setShowForm] = useState(false);
   const [reveal, setReveal] = useState(null);
@@ -74,7 +74,8 @@ function ScreenVault() {
 
   const kindLabel = (k) => {
     const labels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note', 'photo': 'Photo' };
-    return labels[k] || k;
+    const labelsEs = { 'seed-phrase': 'Frase semilla', 'private-key': 'Llave privada', 'document': 'Documento', 'letter': 'Carta', 'note': 'Nota', 'photo': 'Foto' };
+    return lang === 'es' ? (labelsEs[k] || k) : (labels[k] || k);
   };
   const kindColor = (k) => {
     const colors = { 'seed-phrase': 'var(--gold)', 'private-key': 'var(--gold-warm)', 'document': 'var(--sky-deep)', 'letter': 'var(--grass)', 'note': 'var(--ink-soft)', 'photo': 'var(--gold)' };
@@ -111,33 +112,33 @@ function ScreenVault() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 22 }}>✦</span>
           <div>
-            <div className="kv-key">vault state</div>
+            <div className="kv-key">{lang === 'es' ? 'estado del vault' : 'vault state'}</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', color: 'var(--ink)', fontWeight: 500 }}>
-              {isConnected ? 'Active · onchain' : 'Wallet not connected'}
+              {isConnected ? (lang === 'es' ? 'Activo · onchain' : 'Active · onchain') : (lang === 'es' ? 'Wallet no conectada' : 'Wallet not connected')}
             </div>
           </div>
         </div>
-        <StatBlock k="Inscriptions" v={String(inscriptions.length)} sub="onchain" />
-        <StatBlock k="Locked" v={String(inscriptions.filter(ins => ins.unlockAt && Number(ins.unlockAt) * 1000 > Date.now()).length)} sub="time-locked" />
-        <StatBlock k="Encryption" v="AES-256" sub="client-side" />
+        <StatBlock k={lang === 'es' ? 'Inscripciones' : 'Inscriptions'} v={String(inscriptions.length)} sub="onchain" />
+        <StatBlock k={lang === 'es' ? 'Bloqueadas' : 'Locked'} v={String(inscriptions.filter(ins => ins.unlockAt && Number(ins.unlockAt) * 1000 > Date.now()).length)} sub="time-locked" />
+        <StatBlock k={lang === 'es' ? 'Cifrado' : 'Encryption'} v="AES-256" sub="client-side" />
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 18, marginTop: 18 }}>
         <section className="app-card" style={{ overflow: 'hidden' }}>
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 12px' }}>
             <div>
-              <div className="kv-key">the collection</div>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--ink)', fontWeight: 500, marginTop: 2 }}>Your inscriptions</h2>
+              <div className="kv-key">{lang === 'es' ? 'la colección' : 'the collection'}</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--ink)', fontWeight: 500, marginTop: 2 }}>{lang === 'es' ? 'Tus inscripciones' : 'Your inscriptions'}</h2>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder={lang === 'es' ? 'Buscar...' : 'Search...'}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid color-mix(in srgb, var(--ink) 12%, transparent)', background: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--ink)', outline: 'none', width: 140 }}
               />
-              <button className="chip">all · {inscriptions.length}</button>
+              <button className="chip">{lang === 'es' ? 'todas' : 'all'} · {inscriptions.length}</button>
             </div>
           </header>
 
@@ -181,7 +182,7 @@ function ScreenVault() {
                   </div>
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed color-mix(in srgb, var(--ink) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--ink-soft)' }}>{ins.cid.slice(0, 10)}...</span>
-                    <span style={{ color: 'var(--gold-warm)', fontSize: '0.78rem', fontWeight: 500 }}>Reveal →</span>
+                    <span style={{ color: 'var(--gold-warm)', fontSize: '0.78rem', fontWeight: 500 }}>{lang === 'es' ? 'Revelar →' : 'Reveal →'}</span>
                   </div>
                 </article>
               ))}
