@@ -14,5 +14,3 @@ export const config = getDefaultConfig({
 });
 
 export const CONTRACT_ADDRESS = import.meta.env.VITE_GRIMOIRE_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
-export const LIGHTHOUSE_API_KEY = import.meta.env.VITE_LIGHTHOUSE_API_KEY || '';
-export const GATEWAY = 'https://gateway.lighthouse.storage/ipfs';

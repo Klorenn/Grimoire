@@ -1,96 +1,84 @@
 /**
- * Grimoire Lighthouse — Upload encrypted payloads to Filecoin/IPFS via Lighthouse SDK.
+ * Grimoire Storage — Upload encrypted payloads to IPFS via Pinata.
  *
  * SECURITY: Only the encrypted JSON payload is uploaded. The original secret,
- * passphrase, and plaintext NEVER leave the browser. Lighthouse stores ciphertext only.
- *
- * Gateway: Uses Lighthouse gateway (primary) with IPFS.io and Cloudflare as fallbacks.
+ * passphrase, and plaintext NEVER leave the browser. Pinata stores ciphertext only.
  */
 
-import lighthouse from '@lighthouse-web3/sdk';
-import { LIGHTHOUSE_API_KEY } from '../config.js';
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || '';
+const PINATA_API = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+const PINATA_GATEWAY = 'https://gateway.pinata.cloud/ipfs';
+
+const FALLBACK_GATEWAYS = [
+  'https://ipfs.io/ipfs',
+  'https://dweb.link/ipfs',
+];
 
 /**
- * Upload an encrypted payload (JSON string) to Lighthouse.
+ * Upload an encrypted payload (JSON object) to Pinata/IPFS.
  * @param {Object} payload - The EncryptedPayload object
  * @param {string} name - Optional name for the file
  * @returns {Promise<string>} The CID (Content Identifier)
  */
 export async function uploadEncryptedPayload(payload, name = 'grimoire-inscription') {
-  if (!LIGHTHOUSE_API_KEY) {
-    throw new Error('LIGHTHOUSE_API_KEY is not configured. Set VITE_LIGHTHOUSE_API_KEY in .env');
+  if (!PINATA_JWT) {
+    throw new Error('VITE_PINATA_JWT is not configured. Set it in .env');
   }
-  const json = JSON.stringify(payload);
-  // Use proper File upload for better IPFS pinning
-  const blob = new Blob([json], { type: 'application/json' });
-  const file = new File([blob], `${name}.json`, { type: 'application/json' });
-  const response = await lighthouse.upload(file, LIGHTHOUSE_API_KEY);
-  if (!response?.data?.Hash) {
-    throw new Error('Lighthouse upload failed: no CID returned');
+  const body = {
+    pinataContent: payload,
+    pinataMetadata: { name },
+  };
+  const res = await fetch(PINATA_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${PINATA_JWT}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Pinata upload failed: ${res.status} ${err}`);
   }
-  return response.data.Hash;
+  const data = await res.json();
+  if (!data?.IpfsHash) {
+    throw new Error('Pinata upload failed: no CID returned');
+  }
+  return data.IpfsHash;
 }
 
 /**
- * Fetch an encrypted payload from IPFS by CID via Lighthouse gateway or fallbacks.
+ * Fetch an encrypted payload from IPFS by CID.
  * @param {string} cid - The IPFS CID
  * @returns {Promise<Object>} The EncryptedPayload object
  */
-const DEDICATED_GATEWAY = 'https://horrible-unicorn-2vtu8.lighthouse.storage';
-
 export async function fetchEncryptedPayload(cid) {
-  // Dedicated gateway first (free tier workaround)
   const urls = [
-    `${DEDICATED_GATEWAY}/ipfs/${cid}`,
-    `https://ipfs.io/ipfs/${cid}`,
-    `https://dweb.link/ipfs/${cid}`,
+    `${PINATA_GATEWAY}/${cid}`,
+    ...FALLBACK_GATEWAYS.map(gw => `${gw}/${cid}`),
   ];
 
-  let lastData = null;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     for (const url of urls) {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
+        const timeout = setTimeout(() => controller.abort(), 10000);
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) continue;
-        const text = await res.text();
-        // Try parsing as JSON
-        try {
-          const data = JSON.parse(text);
-          // Could be direct payload or wrapped
-          if (data?.ciphertext) return data;
-          if (data?.data?.ciphertext) return data.data;
-          if (data?.payload?.ciphertext) return data.payload;
-          // Lighthouse uploadText wraps in a "text" field
-          if (data?.text) {
-            try { const inner = JSON.parse(data.text); if (inner?.ciphertext) return inner; } catch {}
-          }
-          lastData = data;
-        } catch {
-          // Not JSON, might be raw text — try parsing differently
-          if (text.includes('ciphertext')) {
-            try {
-              const cleaned = text.trim();
-              return JSON.parse(cleaned);
-            } catch { /* keep trying */ }
-          }
-        }
+        const data = await res.json();
+        if (data?.ciphertext) return data;
       } catch { continue; }
     }
-    if (attempt < 4) await new Promise(r => setTimeout(r, 5000));
+    if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
   }
 
-  if (lastData) return lastData;
-  throw new Error(`Failed to fetch from all gateways. Try again later.`);
+  throw new Error('Failed to fetch from all gateways.');
 }
 
 /**
  * Get the view URL for a CID.
- * @param {string} cid
- * @returns {string}
  */
 export function getGatewayUrl(cid) {
-  return `https://ipfs.io/ipfs/${cid}`;
+  return `${PINATA_GATEWAY}/${cid}`;
 }
