@@ -27,6 +27,7 @@ export function InscribeForm({ onClose, onSuccess }) {
   const [error, setError] = useState('');
   const [cid, setCid] = useState('');
   const [txHash, setTxHash] = useState('');
+  const [pollCount, setPollCount] = useState(0);
 
   function validate() {
     if (!title.trim()) return 'Title is required';
@@ -58,20 +59,28 @@ export function InscribeForm({ onClose, onSuccess }) {
 
       // Manual polling for receipt
       if (publicClient) {
-        for (let i = 0; i < 60; i++) {
+        for (let attempt = 0; attempt < 60; attempt++) {
           await new Promise(r => setTimeout(r, 3000));
+          setPollCount(attempt + 1);
           try {
             const receipt = await publicClient.getTransactionReceipt({ hash });
-            if (receipt && receipt.status === 'success') {
-              setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
-              if (onSuccess) onSuccess();
-              return;
+            if (receipt) {
+              if (receipt.status === 'success') {
+                setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
+                if (onSuccess) onSuccess();
+                return;
+              }
+              if (receipt.status === 'reverted') {
+                setError('Transaction reverted onchain');
+                setStep(0);
+                return;
+              }
             }
           } catch { /* receipt not ready yet */ }
         }
-        setError('Transaction not confirmed after 3 minutes. Check the explorer.');
+        setError('Transaction not confirmed after 3 minutes. Check the explorer: https://calibration.filfox.info/tx/' + hash);
+        setStep(0);
       } else {
-        // Fallback: just mark as done
         setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
         if (onSuccess) onSuccess();
       }
@@ -91,7 +100,12 @@ export function InscribeForm({ onClose, onSuccess }) {
         <div style={{ marginTop: 24, width: '100%', height: 4, background: 'color-mix(in srgb, var(--ink) 8%, transparent)', borderRadius: 2 }}>
           <div style={{ width: `${(step / 4) * 100}%`, height: '100%', background: 'var(--gold-warm)', borderRadius: 2, transition: 'width 0.5s ease' }} />
         </div>
-        {txHash && <p style={{ marginTop: 12, fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--ink-soft)' }}>tx: {txHash.slice(0, 14)}...</p>}
+        {txHash && (
+          <div style={{ marginTop: 12 }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--ink-soft)' }}>tx: {txHash.slice(0, 14)}...</p>
+            {pollCount > 0 && <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--ink-soft)', marginTop: 4 }}>Checking confirmation... ({pollCount}/60 · ~{pollCount * 3}s)</p>}
+          </div>
+        )}
       </div>
     );
   }
