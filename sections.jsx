@@ -355,22 +355,7 @@ function Hero() {
             {t.hero.subtitle}
           </p>
 
-          <div className="reveal-word hero-word mt-9"
-            style={{
-              display: 'inline-flex',
-              padding: '6px 6px 6px 20px',
-              borderRadius: '999px',
-              background: 'rgba(26,46,53,0.45)',
-              backdropFilter: 'blur(20px) saturate(150%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(150%)',
-              boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.25), 0 8px 32px -8px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
-              alignItems: 'center',
-              gap: 0,
-            }}
-          >
-            <span style={{ color: 'rgba(250,243,227,0.85)', fontSize: '0.9rem' }}>
-              {t.hero.placeholder}
-            </span>
+          <div className="reveal-word hero-word mt-9">
             <HeroWalletConnect label={t.hero.cta} />
           </div>
 
