@@ -14,6 +14,7 @@ function ScreenActivity() {
   const { isConnected, address } = useAccount();
   const publicClient = usePublicClient();
   const { t } = useT();
+  const s = t.screens.activity;
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -54,38 +55,38 @@ function ScreenActivity() {
 
   return (
     <AppShell active="activity" crumbs={['HOME', 'TRUST', 'ACTIVITY']}>
-      <PageHead eyebrow="Trust & people" title="<em>Activity</em> log" sub="Every inscription, proof-of-life, and heir configuration is recorded onchain." />
+      <PageHead eyebrow={s.eyebrow} title={s.title} sub={s.sub} />
 
       {!isConnected ? (
-        <div className="app-card" style={{ padding: 60, textAlign: 'center', color: 'var(--ink-soft)' }}>Connect your wallet to view your activity.</div>
+        <div className="app-card" style={{ padding: 60, textAlign: 'center', color: 'var(--ink-soft)' }}>{s.connect || 'Connect your wallet'}</div>
       ) : loading ? (
-        <div className="app-card" style={{ padding: 60, textAlign: 'center', color: 'var(--ink-soft)' }}>Loading events...</div>
+        <div className="app-card" style={{ padding: 60, textAlign: 'center', color: 'var(--ink-soft)' }}>{s.loading}</div>
       ) : (
         <section className="app-card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
-              <div className="kv-key">onchain events</div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginTop: 4, fontWeight: 500 }}>{events.length} events</h3>
+              <div className="kv-key">{s.events}</div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginTop: 4, fontWeight: 500 }}>{events.length} {s.count}</h3>
             </div>
-            <button className="app-btn ghost" onClick={loadEvents} style={{ padding: '6px 12px', fontSize: '0.78rem' }}>Refresh</button>
+            <button className="app-btn ghost" onClick={loadEvents} style={{ padding: '6px 12px', fontSize: '0.78rem' }}>{s.refresh}</button>
           </div>
 
           {events.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
-              <p>No events found for your wallet. Create an inscription to get started.</p>
+              <p>{s.noEvents}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {events.map((ev, i) => (
                 <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px dashed color-mix(in srgb, var(--ink) 8%, transparent)' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--gold-warm)', minWidth: 80, paddingTop: 2 }}>
-                    {ev.date ? ev.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'}
+                    {ev.date ? ev.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : s.unknown}
                   </span>
                   <div>
                     <div style={{ fontSize: '0.88rem', color: 'var(--ink)', lineHeight: 1.5 }}>
-                      {ev.event === 'InscriptionCreated' && `✦ Inscribed ${kindLabels[ev.kind] || ev.kind}`}
-                      {ev.event === 'HeirsConfigured' && `✦ Heirs configured`}
-                      {ev.event === 'Pinged' && `✦ Pinged — proof of life`}
+                      {ev.event === 'InscriptionCreated' && `✦ ${s.inscribed} ${kindLabels[ev.kind] || ev.kind}`}
+                      {ev.event === 'HeirsConfigured' && `✦ ${s.heirsConfigured}`}
+                      {ev.event === 'Pinged' && `✦ ${s.pinged}`}
                     </div>
                     {ev.date && (
                       <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', marginTop: 2 }}>
