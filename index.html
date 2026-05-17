@@ -22,7 +22,9 @@
 <div id="errors" style="display:none;position:fixed;inset:0;z-index:9999;background:#1a1a2e;color:#ff6b6b;font-family:monospace;padding:40px;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6"></div>
 
 <script>
-// Suppress browser extension errors (MetaMask, Rabby, etc.)
+// Silence Lit dev mode + browser extension noise
+window.LIT_DISABLE_DEV_MODE = true;
+
 const SUPPRESS = ['chrome-extension://', 'moz-extension://', 'inpage.js', 'runtime.sendMessage'];
 window.addEventListener('error', function(e) {
   if (e.filename && SUPPRESS.some(s => e.filename.includes(s) || (e.message && e.message.includes(s)))) {
