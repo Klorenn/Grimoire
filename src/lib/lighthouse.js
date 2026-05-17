@@ -34,28 +34,37 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
  * @returns {Promise<Object>} The EncryptedPayload object
  */
 export async function fetchEncryptedPayload(cid) {
-  // Try gateways in order: w3s first (fastest for Lighthouse CIDs), then public
-  const allUrls = [
-    `https://${cid}.ipfs.w3s.link`,
-    `https://${cid}.ipfs.cf-ipfs.com`,
-    `https://ipfs.io/ipfs/${cid}`,
-    `https://cloudflare-ipfs.com/ipfs/${cid}`,
-    `https://dweb.link/ipfs/${cid}`,
-  ];
+  // Lighthouse API direct download (most reliable)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(`https://api.lighthouse.storage/api/lighthouse/download?cid=${cid}`, {
+      headers: { 'Authorization': `Bearer ${LIGHTHOUSE_API_KEY}` },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data?.ciphertext) return data;
+    }
+  } catch { /* fall through */ }
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    for (const url of allUrls) {
+  // Public gateways fallback
+  const urls = ['https://ipfs.io/ipfs', 'https://dweb.link/ipfs'];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const gw of urls) {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-        const res = await fetch(url, { signal: controller.signal });
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(`${gw}/${cid}`, { signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) continue;
         const data = await res.json();
         if (data?.ciphertext) return data;
       } catch { continue; }
     }
-    if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+    if (attempt < 1) await new Promise(r => setTimeout(r, 3000));
   }
 
   throw new Error(`Failed to fetch from all gateways. Try again later.`);
