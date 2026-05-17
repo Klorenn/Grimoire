@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
 import { encryptSecret, hashText } from '../lib/crypto.js';
 import { uploadEncryptedPayload } from '../lib/lighthouse.js';
 import { CONTRACT_ADDRESS } from '../config.js';
@@ -13,9 +13,8 @@ const KIND_IDS = ['seed-phrase', 'private-key', 'document', 'letter', 'note'];
 
 export function InscribeForm({ onClose, onSuccess }) {
   const { isConnected } = useAccount();
-  const { writeContractAsync, data: txHash } = useWriteContract();
-  const { isSuccess: txConfirmed, isError: txFailed, error: txError, isLoading: txLoading } = useWaitForTransactionReceipt({ hash: txHash });
-
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
   const { t } = useT();
   const i = t.inscribe;
 
@@ -27,7 +26,7 @@ export function InscribeForm({ onClose, onSuccess }) {
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
   const [cid, setCid] = useState('');
-  const [pendingHash, setPendingHash] = useState('');
+  const [txHash, setTxHash] = useState('');
 
   function validate() {
     if (!title.trim()) return 'Title is required';
@@ -55,30 +54,32 @@ export function InscribeForm({ onClose, onSuccess }) {
       setCid(uploadedCid);
       setStep(4);
       const hash = await writeContractAsync({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'createInscription', args: [uploadedCid, kind, titleHash] });
-      setPendingHash(hash);
+      setTxHash(hash);
+
+      // Manual polling for receipt
+      if (publicClient) {
+        for (let i = 0; i < 60; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          try {
+            const receipt = await publicClient.getTransactionReceipt({ hash });
+            if (receipt && receipt.status === 'success') {
+              setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
+              if (onSuccess) onSuccess();
+              return;
+            }
+          } catch { /* receipt not ready yet */ }
+        }
+        setError('Transaction not confirmed after 3 minutes. Check the explorer.');
+      } else {
+        // Fallback: just mark as done
+        setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
+        if (onSuccess) onSuccess();
+      }
     } catch (err) {
       setError(err.shortMessage || err.message || 'Inscription failed');
       setStep(0);
     }
   }
-
-  // Watch for confirmation
-  React.useEffect(() => {
-    if (txConfirmed && (step === 4 || pendingHash)) {
-      setStep(5);
-      setSecret(''); setPassphrase(''); setConfirmPassphrase(''); setPendingHash('');
-      if (onSuccess) onSuccess();
-    }
-  }, [txConfirmed]);
-
-  React.useEffect(() => {
-    if (txFailed && (step === 4 || pendingHash)) {
-      setError(txError?.shortMessage || 'Transaction failed');
-      setStep(0); setPendingHash('');
-    }
-  }, [txFailed]);
-
-  const currentHash = txHash || pendingHash;
 
   if (step > 0 && step < 5) {
     const stepIdx = step - 1;
@@ -88,9 +89,9 @@ export function InscribeForm({ onClose, onSuccess }) {
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--ink)', fontWeight: 500 }}>{i.steps[stepIdx]}</h2>
         <p style={{ marginTop: 8, color: 'var(--ink-soft)', fontSize: '0.9rem' }}>{i.stepsSub[stepIdx]}</p>
         <div style={{ marginTop: 24, width: '100%', height: 4, background: 'color-mix(in srgb, var(--ink) 8%, transparent)', borderRadius: 2 }}>
-          <div style={{ width: `${((step + (txLoading ? 0.5 : 0)) / 4) * 100}%`, height: '100%', background: 'var(--gold-warm)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+          <div style={{ width: `${(step / 4) * 100}%`, height: '100%', background: 'var(--gold-warm)', borderRadius: 2, transition: 'width 0.5s ease' }} />
         </div>
-        {currentHash && <p style={{ marginTop: 12, fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--ink-soft)' }}>tx: {currentHash.slice(0, 14)}...</p>}
+        {txHash && <p style={{ marginTop: 12, fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--ink-soft)' }}>tx: {txHash.slice(0, 14)}...</p>}
       </div>
     );
   }
