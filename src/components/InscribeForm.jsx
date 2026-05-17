@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useAccount, useWriteContract, usePublicClient, useSignMessage } from 'wagmi';
-import { encryptWithWalletKey, deriveKeyFromSignature, hashText, KEY_DERIVATION_MESSAGE } from '../lib/crypto.js';
+import { encryptWithWalletKey, deriveKeyFromSignature, hashText, KEY_DERIVATION_MESSAGE, encryptFile } from '../lib/crypto.js';
 import { uploadEncryptedPayload } from '../lib/lighthouse.js';
 import { CONTRACT_ADDRESS } from '../config.js';
-import { getTemplates } from '../lib/templates.js';
 import { useT } from '../../i18n.jsx';
 
 const ABI = [
@@ -57,12 +56,15 @@ export function InscribeForm({ onClose, onSuccess }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    const content = getSecretContent();
+    const isFile = kind === 'document' && uploadFile;
     if (!title.trim()) { setError('Title is required'); return; }
-    if (!content.trim()) { setError('Secret cannot be empty'); return; }
-    if (kind === 'seed-phrase') {
-      const valid = seedWords.filter(w => w.trim());
-      if (valid.length < seedCount) { setError(`Fill all ${seedCount} words`); return; }
+    if (!isFile) {
+      const content = getSecretContent();
+      if (!content.trim()) { setError('Secret cannot be empty'); return; }
+      if (kind === 'seed-phrase') {
+        const valid = seedWords.filter(w => w.trim());
+        if (valid.length < seedCount) { setError(`Fill all ${seedCount} words`); return; }
+      }
     }
     if (!isConnected) { setError('Connect your wallet first'); return; }
 
@@ -75,15 +77,21 @@ export function InscribeForm({ onClose, onSuccess }) {
       setStep(1);
       const titleHash = await hashText(title.trim());
 
-      // Build metadata with chapter
-      const metadata = { title: title.trim(), kind, chapter: chapter.trim() || null };
-      const jsonContent = JSON.stringify({ content, metadata });
-      
       setStep(2);
-      const payload = await encryptWithWalletKey(jsonContent, key);
-
-      setStep(3);
-      const uploadedCid = await uploadEncryptedPayload(payload, `grimoire-${kind}`);
+      let uploadedCid;
+      if (isFile) {
+        const encFile = await encryptFile(uploadFile, key);
+        const metadata = { title: title.trim(), kind, chapter: chapter.trim() || null };
+        const payload = { ...encFile, metadata };
+        uploadedCid = await uploadEncryptedPayload(payload, uploadFile.name);
+      } else {
+        // Encrypt and upload text
+        const content = getSecretContent();
+        const metadata = { title: title.trim(), kind, chapter: chapter.trim() || null };
+        const jsonContent = JSON.stringify({ content, metadata });
+        const payload = await encryptWithWalletKey(jsonContent, key);
+        uploadedCid = await uploadEncryptedPayload(payload, `grimoire-${kind}`);
+      }
       setCid(uploadedCid);
 
       // Calculate unlockAt
@@ -169,18 +177,6 @@ export function InscribeForm({ onClose, onSuccess }) {
         <div><label className="kv-key">{i.kind}</label><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
           {KIND_IDS.map((k, idx) => <button key={k} type="button" className={`chip ${kind === k ? 'gold' : ''}`} onClick={() => setKind(k)}>{i.kinds[idx]}</button>)}
         </div></div>
-
-        <div>
-          <label className="kv-key">{i.templateLabel}</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-            {getTemplates(lang).map(tmpl => (
-              <button key={tmpl.id} type="button" className="chip"
-                onClick={() => { setTitle(tmpl.title); setKind(tmpl.kind); setChapter(tmpl.chapter || ''); if (tmpl.content) setSecret(tmpl.content); }}>
-                {tmpl.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div><label className="kv-key">{i.chapter}</label><input type="text" value={chapter} onChange={e => setChapter(e.target.value)} placeholder={i.chapterPlaceholder} autoComplete="off" style={inputStyle} /></div>
 
