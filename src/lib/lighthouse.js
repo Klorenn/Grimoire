@@ -34,37 +34,27 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
  * @returns {Promise<Object>} The EncryptedPayload object
  */
 export async function fetchEncryptedPayload(cid) {
-  // Lighthouse API direct download (most reliable)
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(`https://api.lighthouse.storage/api/lighthouse/download?cid=${cid}`, {
-      headers: { 'Authorization': `Bearer ${LIGHTHOUSE_API_KEY}` },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (res.ok) {
-      const text = await res.text();
-      const data = JSON.parse(text);
-      if (data?.ciphertext) return data;
-    }
-  } catch { /* fall through */ }
+  const urls = [
+    `https://gateway.lighthouse.storage/ipfs/${cid}`,
+    `https://ipfs.io/ipfs/${cid}`,
+    `https://dweb.link/ipfs/${cid}`,
+    `https://ipfs.fleek.co/ipfs/${cid}`,
+  ];
 
-  // Public gateways fallback
-  const urls = ['https://ipfs.io/ipfs', 'https://dweb.link/ipfs'];
-  for (let attempt = 0; attempt < 2; attempt++) {
-    for (const gw of urls) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    for (const url of urls) {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch(`${gw}/${cid}`, { signal: controller.signal });
+        const timeout = setTimeout(() => controller.abort(), 12000);
+        const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) continue;
         const data = await res.json();
         if (data?.ciphertext) return data;
       } catch { continue; }
     }
-    if (attempt < 1) await new Promise(r => setTimeout(r, 3000));
+    // Wait between retries (IPFS needs time to propagate)
+    if (attempt < 4) await new Promise(r => setTimeout(r, 5000));
   }
 
   throw new Error(`Failed to fetch from all gateways. Try again later.`);
