@@ -174,8 +174,8 @@ const dict = {
     footer: {
       desc: 'A quiet vault for the things that matter most — encrypted by you, stored on Filecoin, kept safe forever.',
       cols: [
-        { t: 'The Collection', l: ['Open Grimoire', 'What to Keep', 'Inheritance', 'Heir Settings', 'Recovery Guide'] },
-        { t: 'The Keepers',    l: ['Manifesto', 'The Council', 'Field Notes', 'Join Us'] },
+        { t: 'The Collection', l: ['Open Grimoire', 'Inscribe', 'Chapters', 'Shared', 'Settings'] },
+        { t: 'The Keepers',    l: ['Keepers', 'Activity', 'Manifesto', 'Join Us'] },
         { t: 'Help',           l: ['Reach Us', 'Privacy', 'Terms', 'Report an Issue'] },
       ],
       copy: 'Made with care · © 2026 The Grimoire Order',
@@ -441,8 +441,8 @@ const dict = {
     footer: {
       desc: 'Una bóveda tranquila para lo que más importa — cifrado por ti, guardado en Filecoin, a salvo para siempre.',
       cols: [
-        { t: 'La colección', l: ['Abrir Grimoire', 'Qué guardar', 'Herencia', 'Ajustes de herederos', 'Guía de recuperación'] },
-        { t: 'Los guardianes', l: ['Manifiesto', 'El consejo', 'Notas de campo', 'Únete'] },
+        { t: 'La colección', l: ['Abrir Grimoire', 'Inscribir', 'Capítulos', 'Compartido', 'Ajustes'] },
+        { t: 'Los guardianes', l: ['Guardianes', 'Actividad', 'Manifiesto', 'Únete'] },
         { t: 'Ayuda', l: ['Contáctanos', 'Privacidad', 'Términos', 'Reportar un problema'] },
       ],
       copy: 'Hecho con cuidado · © 2026 La Orden de Grimoire',

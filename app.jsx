@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { LangProvider, useT } from './i18n.jsx';
 import { useReveal, Navbar, Hero, Problem, Solution, Features, Compare, Science, Testimonials, Pricing, Footer } from './sections.jsx';
 import { ScreenVault } from './screen-vault.jsx';
+import { ScreenInscribe } from './screen-inscribe.jsx';
+import { ScreenChapters } from './screen-chapters.jsx';
+import { ScreenShared } from './screen-shared.jsx';
+import { ScreenKeepers } from './screen-keepers.jsx';
+import { ScreenActivity } from './screen-activity.jsx';
+import { ScreenSettings } from './screen-settings.jsx';
+import { ScreenDisconnect } from './screen-disconnect.jsx';
+// Legacy screens — kept for footer links
 import { ScreenKeep } from './screen-keep.jsx';
 import { ScreenInheritance } from './screen-inheritance.jsx';
 import { ScreenHeirs } from './screen-heirs.jsx';
@@ -10,6 +18,13 @@ import { ScreenManifesto } from './screen-manifesto.jsx';
 
 const APARTADOS = {
   vault: 'vault',
+  inscribe: 'inscribe',
+  chapters: 'chapters',
+  shared: 'shared',
+  keepers: 'keepers',
+  activity: 'activity',
+  settings: 'settings',
+  disconnect: 'disconnect',
   keep: 'keep',
   inheritance: 'inheritance',
   heirs: 'heirs',
@@ -56,6 +71,13 @@ function AppContent() {
   const hash = useHash();
   switch (hash) {
     case 'vault':       return <ScreenVault />;
+    case 'inscribe':    return <ScreenInscribe />;
+    case 'chapters':    return <ScreenChapters />;
+    case 'shared':      return <ScreenShared />;
+    case 'keepers':     return <ScreenKeepers />;
+    case 'activity':    return <ScreenActivity />;
+    case 'settings':    return <ScreenSettings />;
+    case 'disconnect':  return <ScreenDisconnect />;
     case 'keep':        return <ScreenKeep />;
     case 'inheritance': return <ScreenInheritance />;
     case 'heirs':       return <ScreenHeirs />;

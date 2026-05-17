@@ -1040,8 +1040,8 @@ function Footer() {
 
   // route mapping for footer columns: [col][linkIndex] → hash route
   const footerRoutes = [
-    ['#/vault', '#/keep', '#/inheritance', '#/heirs', '#/recovery'],
-    ['#/manifesto', null, null, null],
+    ['#/vault', '#/inscribe', '#/chapters', '#/shared', '#/settings'],
+    ['#/keepers', '#/activity', '#/manifesto', null],
     [null, null, null, null],
   ];
 

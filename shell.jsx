@@ -20,20 +20,26 @@ const NavSettings = () => <NIcon><circle {...NavStroke} cx="12" cy="12" r="3"/><
 const NavBell = () => <NIcon><path {...NavStroke} d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path {...NavStroke} d="M10 21a2 2 0 0 0 4 0"/></NIcon>;
 const NavSearch = () => <NIcon size={16}><circle {...NavStroke} cx="11" cy="11" r="6"/><path {...NavStroke} d="m20 20-3.5-3.5"/></NIcon>;
 const NavCog = () => NavSettings();
+const NavPlus = () => <NIcon><path {...NavStroke} d="M12 5v14M5 12h14"/></NIcon>;
+const NavShare = () => <NIcon><circle {...NavStroke} cx="5" cy="12" r="2.5"/><circle {...NavStroke} cx="18" cy="6" r="2.5"/><circle {...NavStroke} cx="18" cy="18" r="2.5"/><path {...NavStroke} d="m7.5 11 8-4M7.5 13l8 4"/></NIcon>;
+const NavActivity = () => <NIcon><path {...NavStroke} d="M3 12h4l3-9 4 18 3-9h4"/></NIcon>;
+const NavExit = () => <NIcon><path {...NavStroke} d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></NIcon>;
 
 /* ── i18n labels for navigation ──────────────────────────────── */
 const SHELL_STRINGS = {
   en: {
     home: 'HOME',
-    openGrimoire: 'OPEN GRIMOIRE',
-    whatToKeep: 'What to Keep',
-    inheritance: 'Inheritance',
-    heirSettings: 'Heir Settings',
-    recoveryGuide: 'Recovery Guide',
-    manifesto: 'Manifesto',
+    vault: 'Vault',
+    inscribe: 'Inscribe',
+    chapters: 'Chapters',
+    shared: 'Shared',
+    keepers: 'Keepers',
+    activity: 'Activity',
+    settings: 'Settings',
+    disconnect: 'Disconnect',
     yourGrimoire: 'Your Grimoire',
-    legacy: 'Legacy',
-    theOrder: 'The Order',
+    trust: 'Trust & people',
+    account: 'Account',
     search: 'Search the grimoire…',
     vaultStatus: 'Filecoin Calibration',
     vaultStatusLabel: '✦ vault status',
@@ -41,15 +47,17 @@ const SHELL_STRINGS = {
   },
   es: {
     home: 'INICIO',
-    openGrimoire: 'ABRIR GRIMOIRE',
-    whatToKeep: 'Qué guardar',
-    inheritance: 'Herencia',
-    heirSettings: 'Ajustes de herederos',
-    recoveryGuide: 'Guía de recuperación',
-    manifesto: 'Manifiesto',
+    vault: 'Bóveda',
+    inscribe: 'Inscribir',
+    chapters: 'Capítulos',
+    shared: 'Compartido',
+    keepers: 'Guardianes',
+    activity: 'Actividad',
+    settings: 'Ajustes',
+    disconnect: 'Desconectar',
     yourGrimoire: 'Tu grimorio',
-    legacy: 'Legado',
-    theOrder: 'La Orden',
+    trust: 'Confianza',
+    account: 'Cuenta',
     search: 'Buscar en el grimorio…',
     vaultStatus: 'Filecoin Calibration',
     vaultStatusLabel: '✦ estado del vault',
@@ -105,16 +113,18 @@ function SideBar({ active }) {
   const s = SHELL_STRINGS[lang] || SHELL_STRINGS.en;
 
   const NAV_PRIMARY = [
-    { id: 'vault', label: s.openGrimoire, icon: <NavBook /> },
-    { id: 'keep',  label: s.whatToKeep,   icon: <NavLibrary /> },
+    { id: 'vault',    label: s.vault,     icon: <NavBook /> },
+    { id: 'inscribe', label: s.inscribe,  icon: <NavPlus /> },
+    { id: 'chapters', label: s.chapters,  icon: <NavLibrary /> },
   ];
-  const NAV_LEGACY = [
-    { id: 'inheritance', label: s.inheritance,   icon: <NavHeart /> },
-    { id: 'heirs',       label: s.heirSettings,  icon: <NavUsers /> },
-    { id: 'recovery',    label: s.recoveryGuide, icon: <NavCompass /> },
+  const NAV_TRUST = [
+    { id: 'shared',   label: s.shared,    icon: <NavShare /> },
+    { id: 'keepers',  label: s.keepers,   icon: <NavUsers /> },
+    { id: 'activity', label: s.activity,  icon: <NavActivity /> },
   ];
-  const NAV_ORDER = [
-    { id: 'manifesto', label: s.manifesto, icon: <NavScroll /> },
+  const NAV_ACCOUNT = [
+    { id: 'settings',    label: s.settings,    icon: <NavSettings /> },
+    { id: 'disconnect',  label: s.disconnect,  icon: <NavExit /> },
   ];
 
   const navigate = (id) => { window.location.hash = '#/' + id; };
@@ -128,10 +138,10 @@ function SideBar({ active }) {
     <aside className="shell-rail">
       <div className="rail-section-label">{s.yourGrimoire}</div>
       <nav className="rail-nav">{NAV_PRIMARY.map(renderItem)}</nav>
-      <div className="rail-section-label">{s.legacy}</div>
-      <nav className="rail-nav">{NAV_LEGACY.map(renderItem)}</nav>
-      <div className="rail-section-label">{s.theOrder}</div>
-      <nav className="rail-nav">{NAV_ORDER.map(renderItem)}</nav>
+      <div className="rail-section-label">{s.trust}</div>
+      <nav className="rail-nav">{NAV_TRUST.map(renderItem)}</nav>
+      <div className="rail-section-label">{s.account}</div>
+      <nav className="rail-nav">{NAV_ACCOUNT.map(renderItem)}</nav>
       <div className="rail-status">
         <div className="tag">{s.vaultStatusLabel}</div>
         <div className="head">{s.vaultStatus}</div>
@@ -167,4 +177,4 @@ function PageHead({ eyebrow, title, sub, actions }) {
   );
 }
 
-export { ASigil, AppShell, TopBar, SideBar, PageHead, NavBook, NavLibrary, NavHeart, NavUsers, NavCompass, NavScroll, NavSettings, NavSearch, NavBell, NavCog };
+export { ASigil, AppShell, TopBar, SideBar, PageHead, NavBook, NavLibrary, NavHeart, NavUsers, NavCompass, NavScroll, NavSettings, NavSearch, NavBell, NavCog, NavPlus, NavShare, NavActivity, NavExit };
