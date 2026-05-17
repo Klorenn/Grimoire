@@ -67,7 +67,7 @@ export function InscribeForm({ onClose, onSuccess }) {
             if (receipt) {
               if (receipt.status === 'success') {
                 setStep(5); setSecret(''); setPassphrase(''); setConfirmPassphrase('');
-                if (onSuccess) onSuccess();
+                // Don't call onSuccess yet — let user see the success screen first
                 return;
               }
               if (receipt.status === 'reverted') {
@@ -117,7 +117,7 @@ export function InscribeForm({ onClose, onSuccess }) {
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--ink)', fontWeight: 500 }}>{i.done.title}</h2>
         <p style={{ marginTop: 8, color: 'var(--ink-soft)', fontSize: '0.9rem' }}>{i.done.body}</p>
         <div style={{ marginTop: 16, display: 'flex', gap: 10, justifyContent: 'center' }}>
-          <button className="app-btn ghost" onClick={onClose}>{i.done.close}</button>
+          <button className="app-btn ghost" onClick={() => { onClose(); if (onSuccess) onSuccess(); }}>{i.done.close}</button>
           <button className="app-btn gold" onClick={() => { setStep(0); setTitle(''); setKind('note'); }}>{i.done.next}</button>
         </div>
       </div>
