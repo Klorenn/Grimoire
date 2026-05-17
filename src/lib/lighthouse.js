@@ -43,14 +43,14 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
  * @returns {Promise<Object>} The EncryptedPayload object
  */
 export async function fetchEncryptedPayload(cid) {
-  const urls = [
-    `${GATEWAY}/${cid}`,
-    ...FALLBACK_GATEWAYS.map((gw) => `${gw}/${cid}`),
-  ];
+  const urls = FALLBACK_GATEWAYS.map((gw) => `${gw}/${cid}`);
 
   for (const url of urls) {
     try {
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) continue;
       const data = await res.json();
       if (data?.ciphertext) return data;
