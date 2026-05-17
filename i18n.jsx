@@ -269,6 +269,9 @@ const dict = {
       hide: 'Hide & close',
       close: 'Close',
       error: 'Decryption failed. Check your passphrase.',
+      fetchError: 'Could not fetch from IPFS. The file may still be propagating. Try again in 30 seconds.',
+      fetching: 'Fetching from IPFS...',
+      decryptError: 'Wrong passphrase. Try again.',
     },
     comingSoon: {
       keep: { title: 'Coming in Phase 2', body: 'The collection guide will show real categories, counts, and templates once onchain inscriptions are live.', cta: 'Open your vault →' },
@@ -533,6 +536,9 @@ const dict = {
       hide: 'Ocultar y cerrar',
       close: 'Cerrar',
       error: 'Falló el descifrado. Revisa tu frase de acceso.',
+      fetchError: 'No se pudo obtener de IPFS. El archivo puede estar propagándose. Reintentá en 30 segundos.',
+      fetching: 'Obteniendo de IPFS...',
+      decryptError: 'Frase incorrecta. Intentá de nuevo.',
     },
     comingSoon: {
       keep: { title: 'Próximamente en Fase 2', body: 'La guía de colección mostrará categorías reales, contadores y plantillas cuando las inscripciones onchain estén activas.', cta: 'Abrir tu bóveda →' },

@@ -19,12 +19,17 @@ export function RevealModal({ cid, kind, onClose }) {
     setLoading(true);
     try {
       const payload = await fetchEncryptedPayload(cid);
-      const secret = await decryptSecret(payload, passphrase);
-      setDecrypted(secret);
-      setRevealed(true);
-      setPassphrase('');
-    } catch (err) {
-      setError(r.error);
+      try {
+        const secret = await decryptSecret(payload, passphrase);
+        setDecrypted(secret);
+        setRevealed(true);
+        setPassphrase('');
+      } catch {
+        setError(r.decryptError);
+      }
+    } catch {
+      setError(r.fetchError);
+      setFetchAttempt(0);
     } finally {
       setLoading(false);
     }
@@ -55,7 +60,9 @@ export function RevealModal({ cid, kind, onClose }) {
               <input type="password" autoComplete="new-password" value={passphrase} onChange={e => setPassphrase(e.target.value)} placeholder={r.placeholder} autoFocus style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--ink) 12%, transparent)', background: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--ink)', outline: 'none', marginTop: 4, boxSizing: 'border-box' }} />
             </div>
             {error && <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(164,88,74,0.1)', border: '1px solid rgba(164,88,74,0.2)', color: '#A4584A', fontSize: '0.85rem' }}>{error}</div>}
-            <button type="submit" className="app-btn gold" disabled={loading} style={{ justifyContent: 'center' }}>{loading ? r.decrypting : r.cta}</button>
+            <button type="submit" className="app-btn gold" disabled={loading} style={{ justifyContent: 'center' }}>
+              {loading ? r.fetching : r.cta}
+            </button>
           </form>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
