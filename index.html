@@ -22,19 +22,33 @@
 <div id="errors" style="display:none;position:fixed;inset:0;z-index:9999;background:#1a1a2e;color:#ff6b6b;font-family:monospace;padding:40px;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6"></div>
 
 <script>
-window.onerror = function(msg, url, line, col, error) {
-  if (url && url.includes('chrome-extension://')) return;
-  var el = document.getElementById('errors');
-  el.style.display = 'block';
-  el.innerHTML = 'JS ERROR:\n' + msg + '\nat ' + url + ':' + line + ':' + col + '\n\nStack:\n' + (error && error.stack ? error.stack : 'none');
-};
+// Suppress browser extension errors (MetaMask, Rabby, etc.)
+const SUPPRESS = ['chrome-extension://', 'moz-extension://', 'inpage.js', 'runtime.sendMessage'];
+window.addEventListener('error', function(e) {
+  if (e.filename && SUPPRESS.some(s => e.filename.includes(s) || (e.message && e.message.includes(s)))) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    return false;
+  }
+}, true);
 window.addEventListener('unhandledrejection', function(e) {
-  if (e.reason && e.reason.stack && e.reason.stack.includes('chrome-extension://')) return;
-  if (e.reason && e.reason.message && e.reason.message.includes('chrome.runtime.sendMessage')) return;
+  var msg = e.reason?.message || e.reason?.stack || String(e.reason);
+  if (SUPPRESS.some(s => msg.includes(s))) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    return;
+  }
   var el = document.getElementById('errors');
   el.style.display = 'block';
-  el.innerHTML = 'PROMISE ERROR:\n' + (e.reason ? (e.reason.stack || e.reason) : 'unknown');
+  el.innerHTML = 'ERROR:\n' + (e.reason?.stack || e.reason);
 });
+window.onerror = function(msg, url) {
+  if (url && SUPPRESS.some(s => url.includes(s) || (msg && msg.includes(s)))) return true;
+  var el = document.getElementById('errors');
+  el.style.display = 'block';
+  el.innerHTML = 'JS ERROR:\n' + msg + '\nat ' + url;
+  return true;
+};
 </script>
 
 <!-- film grain noise svg, fixed over everything -->
