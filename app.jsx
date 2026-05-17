@@ -9,6 +9,7 @@ import { ScreenKeepers } from './screen-keepers.jsx';
 import { ScreenActivity } from './screen-activity.jsx';
 import { ScreenSettings } from './screen-settings.jsx';
 import { ScreenDisconnect } from './screen-disconnect.jsx';
+import { ScreenProof } from './screen-proof.jsx';
 // Legacy screens — kept for footer links
 import { ScreenKeep } from './screen-keep.jsx';
 import { ScreenInheritance } from './screen-inheritance.jsx';
@@ -25,6 +26,7 @@ const APARTADOS = {
   activity: 'activity',
   settings: 'settings',
   disconnect: 'disconnect',
+  proof: 'proof',
   keep: 'keep',
   inheritance: 'inheritance',
   heirs: 'heirs',
@@ -78,6 +80,7 @@ function AppContent() {
     case 'activity':    return <ScreenActivity />;
     case 'settings':    return <ScreenSettings />;
     case 'disconnect':  return <ScreenDisconnect />;
+    case 'proof':       return <ScreenProof />;
     case 'keep':        return <ScreenKeep />;
     case 'inheritance': return <ScreenInheritance />;
     case 'heirs':       return <ScreenHeirs />;

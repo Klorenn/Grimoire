@@ -3,6 +3,7 @@ import { useAccount, useWriteContract, usePublicClient, useSignMessage } from 'w
 import { encryptWithWalletKey, deriveKeyFromSignature, hashText, KEY_DERIVATION_MESSAGE } from '../lib/crypto.js';
 import { uploadEncryptedPayload } from '../lib/lighthouse.js';
 import { CONTRACT_ADDRESS } from '../config.js';
+import { TEMPLATES } from '../lib/templates.js';
 import { useT } from '../../i18n.jsx';
 
 const ABI = [
@@ -33,6 +34,7 @@ export function InscribeForm({ onClose, onSuccess }) {
   const [cid, setCid] = useState('');
   const [txHash, setTxHash] = useState('');
   const [pollCount, setPollCount] = useState(0);
+  const [uploadFile, setUploadFile] = useState(null);
 
   function getSecretContent() {
     if (kind === 'seed-phrase') {
@@ -168,6 +170,18 @@ export function InscribeForm({ onClose, onSuccess }) {
           {KIND_IDS.map((k, idx) => <button key={k} type="button" className={`chip ${kind === k ? 'gold' : ''}`} onClick={() => setKind(k)}>{i.kinds[idx]}</button>)}
         </div></div>
 
+        <div>
+          <label className="kv-key">Quick template</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+            {TEMPLATES.map(tmpl => (
+              <button key={tmpl.id} type="button" className="chip"
+                onClick={() => { setTitle(tmpl.title); setKind(tmpl.kind); setChapter(tmpl.chapter || ''); if (tmpl.content) setSecret(tmpl.content); }}>
+                {tmpl.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div><label className="kv-key">Chapter (optional)</label><input type="text" value={chapter} onChange={e => setChapter(e.target.value)} placeholder="e.g. Family, Crypto, Legal" autoComplete="off" style={inputStyle} /></div>
 
         {kind === 'seed-phrase' ? (
@@ -199,6 +213,15 @@ export function InscribeForm({ onClose, onSuccess }) {
             {unlockDate ? `⏳ This inscription will be locked until ${unlockDate}` : 'Leave empty for immediate access'}
           </div>
         </div>
+
+        {kind === 'document' && (
+          <div>
+            <label className="kv-key">File (PDF, image, scan)</label>
+            <input type="file" onChange={e => setUploadFile(e.target.files?.[0] || null)}
+              style={{ ...inputStyle, fontFamily: 'var(--font-body)', fontSize: '0.82rem' }} />
+            {uploadFile && <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', marginTop: 4 }}>{uploadFile.name} · {(uploadFile.size / 1024).toFixed(1)} KB</div>}
+          </div>
+        )}
 
         <div style={{ padding: '12px 14px', borderRadius: 12, background: 'color-mix(in srgb, var(--gold) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--gold) 20%, transparent)', fontSize: '0.8rem', color: 'var(--ink-soft)', lineHeight: 1.5 }}>
           ⚠️ Your wallet signature generates a deterministic key. Same wallet = same key. <strong>Lose your wallet, lose access.</strong>

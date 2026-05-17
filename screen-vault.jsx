@@ -31,6 +31,7 @@ function ScreenVault() {
   const [reveal, setReveal] = useState(null);
   const [inscriptions, setInscriptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
 
   async function loadInscriptions() {
     if (!isConnected || !address) return;
@@ -53,6 +54,23 @@ function ScreenVault() {
   React.useEffect(() => {
     if (isConnected && address) loadInscriptions();
   }, [isConnected, address]);
+
+  const filtered = search
+    ? inscriptions.filter(ins => ins.kind.toLowerCase().includes(search.toLowerCase()))
+    : inscriptions;
+
+  // Countdown helper
+  function Countdown({ unlockAt }) {
+    const [now, setNow] = useState(Date.now());
+    React.useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+    if (!unlockAt || Number(unlockAt) === 0) return null;
+    const unlockMs = Number(unlockAt) * 1000;
+    if (now >= unlockMs) return <span className="chip grass" style={{ fontSize: '0.68rem' }}>✦ unlocked</span>;
+    const diff = unlockMs - now;
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    return <span className="chip gold" style={{ fontSize: '0.68rem' }}>⏳ {days}d {hours}h</span>;
+  }
 
   const kindLabel = (k) => {
     const labels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note' };
@@ -107,7 +125,14 @@ function ScreenVault() {
               <div className="kv-key">the collection</div>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--ink)', fontWeight: 500, marginTop: 2 }}>Your inscriptions</h2>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid color-mix(in srgb, var(--ink) 12%, transparent)', background: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--ink)', outline: 'none', width: 140 }}
+              />
               <button className="chip">all · {inscriptions.length}</button>
             </div>
           </header>
@@ -138,7 +163,7 @@ function ScreenVault() {
                 </tr>
               </thead>
               <tbody>
-                {[...inscriptions].reverse().map((ins, i) => (
+                {[...filtered].reverse().map((ins, i) => (
                   <tr key={i} className="hover-row">
                     <td style={{ paddingLeft: 20 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -147,7 +172,7 @@ function ScreenVault() {
                         </div>
                         <div>
                           <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.98rem', color: 'var(--ink)', fontWeight: 500 }}>
-                            {kindLabel(ins.kind)}
+                            {kindLabel(ins.kind)} {ins.unlockAt && Number(ins.unlockAt) > 0 && <Countdown unlockAt={ins.unlockAt} />}
                           </div>
                           <div style={{ fontSize: '0.74rem', color: 'var(--ink-soft)', marginTop: 1 }}>
                             Created {formatDate(ins.createdAt)}

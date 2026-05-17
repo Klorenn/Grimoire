@@ -161,3 +161,30 @@ export async function decryptWithWalletKey(payload, sigKey) {
 
 /** Signing message for key derivation — deterministic per wallet */
 export const KEY_DERIVATION_MESSAGE = 'Grimoire Vault Key Derivation v1';
+
+/**
+ * Encrypt a file (ArrayBuffer) with wallet-derived key.
+ * Returns { ciphertext (base64), iv (base64), fileName, mimeType }
+ */
+export async function encryptFile(file, sigKey) {
+  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
+  const buffer = await file.arrayBuffer();
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, sigKey, buffer);
+  return {
+    ciphertext: bufToBase64(ciphertext),
+    iv: bufToBase64(iv),
+    fileName: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    size: file.size,
+  };
+}
+
+/**
+ * Decrypt file data and return as Blob.
+ */
+export async function decryptFile(encryptedFile, sigKey) {
+  const iv = new Uint8Array(base64ToBuf(encryptedFile.iv));
+  const ciphertext = new Uint8Array(base64ToBuf(encryptedFile.ciphertext));
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, sigKey, ciphertext);
+  return new Blob([decrypted], { type: encryptedFile.mimeType });
+}

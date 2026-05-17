@@ -6,7 +6,8 @@
  */
 
 const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || '';
-const PINATA_API = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+const PINATA_JSON_API = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+const PINATA_FILE_API = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const PINATA_GATEWAY = 'https://gateway.pinata.cloud/ipfs';
 
 const FALLBACK_GATEWAYS = [
@@ -28,7 +29,7 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
     pinataContent: payload,
     pinataMetadata: { name },
   };
-  const res = await fetch(PINATA_API, {
+  const res = await fetch(PINATA_JSON_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -44,6 +45,28 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
   if (!data?.IpfsHash) {
     throw new Error('Pinata upload failed: no CID returned');
   }
+  return data.IpfsHash;
+}
+
+/**
+ * Upload an encrypted file (ArrayBuffer) to Pinata/IPFS.
+ * @param {ArrayBuffer} encryptedData - The encrypted file bytes
+ * @param {string} name - File name
+ * @returns {Promise<string>} The CID
+ */
+export async function uploadEncryptedFile(encryptedData, name = 'grimoire-file') {
+  if (!PINATA_JWT) throw new Error('VITE_PINATA_JWT is not configured.');
+  const blob = new Blob([encryptedData]);
+  const formData = new FormData();
+  formData.append('file', blob, name);
+  formData.append('pinataMetadata', JSON.stringify({ name }));
+  const res = await fetch(PINATA_FILE_API, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${PINATA_JWT}` },
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`Pinata file upload failed: ${res.status}`);
+  const data = await res.json();
   return data.IpfsHash;
 }
 
