@@ -1,0 +1,248 @@
+import React, { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
+import { AppShell, PageHead } from './shell.jsx';
+import { IconSeed, IconKey, IconLetter, IconDocument, IconLedger, IconNote } from './icons.jsx';
+import { readMyInscriptions } from './src/lib/contract.js';
+import { getGatewayUrl } from './src/lib/lighthouse.js';
+import { InscribeForm } from './src/components/InscribeForm.jsx';
+import { RevealModal } from './src/components/RevealModal.jsx';
+import { CONTRACT_ADDRESS } from './src/config.js';
+
+const INS_ICONS = {
+  'seed-phrase': <IconSeed />,
+  'private-key': <IconKey />,
+  'letter': <IconLetter />,
+  'document': <IconDocument />,
+  'note': <IconNote />,
+  'ledger': <IconLedger />,
+};
+
+function ScreenVault() {
+  const { isConnected } = useAccount();
+  const [inscriptions, setInscriptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [reveal, setReveal] = useState(null);
+
+  async function loadInscriptions() {
+    if (!isConnected || !CONTRACT_ADDRESS || CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') return;
+    setLoading(true);
+    try {
+      const data = await readMyInscriptions();
+      setInscriptions(data || []);
+    } catch (e) {
+      console.error('Failed to load inscriptions:', e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadInscriptions();
+  }, [isConnected]);
+
+  const kindLabel = (k) => {
+    const labels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note' };
+    return labels[k] || k;
+  };
+
+  const formatDate = (ts) => {
+    const d = new Date(Number(ts) * 1000);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  return (
+    <AppShell active="vault" crumbs={['HOME', 'OPEN GRIMOIRE']}>
+      <PageHead
+        eyebrow={isConnected ? 'Your grimoire' : 'Connect your wallet'}
+        title={`Welcome${isConnected ? ' back' : ''}, <em>keeper</em>.`}
+        sub={isConnected ? 'Your vault is quiet. The last proof lives on Filecoin.' : 'Connect your wallet to open the grimoire.'}
+        actions={isConnected ? (
+          <>
+            <button className="app-btn ghost" onClick={loadInscriptions}>Refresh</button>
+            <button className="app-btn gold" onClick={() => setShowForm(!showForm)}>
+              {showForm ? 'Close form' : '+ New inscription'}
+            </button>
+          </>
+        ) : null}
+      />
+
+      {showForm && (
+        <InscribeForm onClose={() => setShowForm(false)} onSuccess={() => { setShowForm(false); loadInscriptions(); }} />
+      )}
+
+      {/* Vault status banner */}
+      <section className="app-card" style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: 0, alignItems: 'center', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 22 }}>✦</span>
+          <div>
+            <div className="kv-key">vault state</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', color: 'var(--ink)', fontWeight: 500 }}>
+              {isConnected ? 'Active · onchain' : 'Wallet not connected'}
+            </div>
+          </div>
+        </div>
+        <StatBlock k="Inscriptions" v={String(inscriptions.length)} sub="onchain" />
+        <StatBlock k="Contract" v="FEVM" sub="Calibration" />
+        <StatBlock k="Encryption" v="AES-256" sub="client-side" />
+      </section>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 18, marginTop: 18 }}>
+        <section className="app-card" style={{ overflow: 'hidden' }}>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 12px' }}>
+            <div>
+              <div className="kv-key">the collection</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--ink)', fontWeight: 500, marginTop: 2 }}>Your inscriptions</h2>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="chip">all · {inscriptions.length}</button>
+            </div>
+          </header>
+
+          {!isConnected ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
+              Connect your wallet to view your inscriptions.
+            </div>
+          ) : loading ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
+              Loading inscriptions...
+            </div>
+          ) : inscriptions.length === 0 ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
+              <p>No inscriptions yet.</p>
+              <button className="app-btn gold" style={{ marginTop: 12 }} onClick={() => setShowForm(true)}>
+                Create your first inscription
+              </button>
+            </div>
+          ) : (
+            <table className="app-table">
+              <thead>
+                <tr>
+                  <th style={{ paddingLeft: 20 }}>Kind</th>
+                  <th>CID</th>
+                  <th>Created</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...inscriptions].reverse().map((ins, i) => (
+                  <tr key={i} className="hover-row">
+                    <td style={{ paddingLeft: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div className="icon-tile" style={{ transform: 'scale(0.65)', width: 44, height: 44 }}>
+                          {INS_ICONS[ins.kind] || <IconNote />}
+                        </div>
+                        <div>
+                          <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.98rem', color: 'var(--ink)', fontWeight: 500 }}>
+                            {kindLabel(ins.kind)}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--ink-soft)', marginTop: 1 }}>
+                            Created {formatDate(ins.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <a
+                        href={getGatewayUrl(ins.cid)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontFamily: 'var(--font-mono)', fontSize: '0.76rem', color: 'var(--ink)', textDecoration: 'none' }}
+                        title={ins.cid}
+                      >
+                        {ins.cid.slice(0, 12)}...
+                      </a>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>{formatDate(ins.createdAt)}</span>
+                    </td>
+                    <td>
+                      <button
+                        className="app-btn ghost"
+                        style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                        onClick={() => setReveal({ cid: ins.cid, kind: ins.kind })}
+                      >
+                        Reveal
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <section className="app-card" style={{ padding: 18 }}>
+            <div className="kv-key">filecoin · proof of storage</div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', color: 'var(--ink)', marginTop: 2, fontWeight: 500 }}>Live verification</h3>
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { k: 'contract', v: CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000' ? 'not deployed' : `${CONTRACT_ADDRESS.slice(0, 6)}...${CONTRACT_ADDRESS.slice(-4)}` },
+                { k: 'encrypt', v: 'AES-256 · client' },
+                { k: 'chain', v: 'Filecoin Calibration' },
+              ].map((l) => (
+                <div key={l.k} style={{ display: 'grid', gridTemplateColumns: '4.6rem 1fr', gap: 8, padding: '6px 0', borderBottom: '1px dashed color-mix(in srgb, var(--ink) 10%, transparent)' }}>
+                  <span className="kv-key" style={{ letterSpacing: '0.16em' }}>{l.k}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.76rem', color: 'var(--ink)' }}>→ {l.v}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="app-card" style={{ padding: 18 }}>
+            <div className="kv-key">protocol info</div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', color: 'var(--ink)', marginTop: 2, fontWeight: 500 }}>How it works</h3>
+            <ul style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span className="spark-dot" style={{ marginTop: 2 }}>✦</span>
+                <div style={{ fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.45 }}>
+                  Secrets are encrypted in your browser before they touch a wire.
+                </div>
+              </li>
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span className="spark-dot" style={{ marginTop: 2 }}>✦</span>
+                <div style={{ fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.45 }}>
+                  Ciphertext is stored on Filecoin via Lighthouse.
+                </div>
+              </li>
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span className="spark-dot" style={{ marginTop: 2 }}>✦</span>
+                <div style={{ fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.45 }}>
+                  The CID is registered onchain in GrimoireRegistry on FEVM.
+                </div>
+              </li>
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span className="spark-dot" style={{ marginTop: 2 }}>✦</span>
+                <div style={{ fontSize: '0.85rem', color: 'var(--ink)', lineHeight: 1.45 }}>
+                  Only your passphrase can decrypt. Not us. Not the chain. Not the protocol.
+                </div>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+
+      {/* Reveal modal */}
+      {reveal && (
+        <RevealModal
+          cid={reveal.cid}
+          kind={reveal.kind}
+          onClose={() => setReveal(null)}
+        />
+      )}
+    </AppShell>
+  );
+}
+
+function StatBlock({ k, v, sub }) {
+  return (
+    <div style={{ paddingLeft: 22, borderLeft: '1px solid color-mix(in srgb, var(--ink) 10%, transparent)' }}>
+      <div className="kv-key">{k}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--ink)', fontWeight: 500, marginTop: 2, lineHeight: 1 }}>{v}</div>
+      <div style={{ fontSize: '0.74rem', color: 'var(--ink-soft)', marginTop: 4 }}>{sub}</div>
+    </div>
+  );
+}
+
+export { ScreenVault, StatBlock };

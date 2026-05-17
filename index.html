@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grimoire — Some things deserve to last forever</title>
+<link rel="icon" type="image/png" href="/assets/grimoire-icon.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400;1,9..144,500;1,9..144,600;1,9..144,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<!-- Tailwind v4 browser build -->
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<link rel="stylesheet" href="/styles.css" />
+<link rel="stylesheet" href="/apartados.css" />
+</head>
+<body class="font-body bg-[var(--parchment)] text-[var(--ink)] antialiased selection:bg-[color-mix(in_srgb,var(--gold)_30%,transparent)] selection:text-[var(--ink)]">
+
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;color:#4A5F68;font-size:14px"><span>Loading Grimoire...</span></div></div>
+<div id="errors" style="display:none;position:fixed;inset:0;z-index:9999;background:#1a1a2e;color:#ff6b6b;font-family:monospace;padding:40px;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6"></div>
+
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  var el = document.getElementById('errors');
+  el.style.display = 'block';
+  el.innerHTML = 'JS ERROR:\n' + msg + '\nat ' + url + ':' + line + ':' + col + '\n\nStack:\n' + (error && error.stack ? error.stack : 'none');
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var el = document.getElementById('errors');
+  el.style.display = 'block';
+  el.innerHTML = 'PROMISE ERROR:\n' + (e.reason ? (e.reason.stack || e.reason) : 'unknown');
+});
+</script>
+
+<!-- film grain noise svg, fixed over everything -->
+<svg class="grain" aria-hidden="true">
+  <filter id="grain-noise">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+    <feColorMatrix values="0 0 0 0 0.15  0 0 0 0 0.18  0 0 0 0 0.21  0 0 0 0.35 0"/>
+  </filter>
+  <rect width="100%" height="100%" filter="url(#grain-noise)"/>
+</svg>
+
+<script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
