@@ -1,54 +1,105 @@
-import React from 'react';
-import { useAccount } from 'wagmi';
+import React, { useState, useEffect } from 'react';
+import { useAccount, usePublicClient } from 'wagmi';
 import { AppShell, PageHead } from './shell.jsx';
 import { useT } from './i18n.jsx';
+import { CONTRACT_ADDRESS } from './src/config.js';
+
+const ABI = [
+  { anonymous: false, inputs: [{ indexed: true, name: 'owner', type: 'address' }, { indexed: false, name: 'cid', type: 'string' }, { indexed: false, name: 'kind', type: 'string' }, { indexed: false, name: 'titleHash', type: 'string' }, { indexed: false, name: 'createdAt', type: 'uint256' }, { indexed: false, name: 'unlockAt', type: 'uint256' }], name: 'InscriptionCreated', type: 'event' },
+  { anonymous: false, inputs: [{ indexed: true, name: 'owner', type: 'address' }, { indexed: false, name: 'threshold', type: 'uint8' }, { indexed: false, name: 'dormancyPeriod', type: 'uint256' }], name: 'HeirsConfigured', type: 'event' },
+  { anonymous: false, inputs: [{ indexed: true, name: 'owner', type: 'address' }, { indexed: false, name: 'timestamp', type: 'uint256' }], name: 'Pinged', type: 'event' },
+];
 
 function ScreenActivity() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const publicClient = usePublicClient();
   const { t } = useT();
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  async function loadEvents() {
+    if (!isConnected || !address || !publicClient) return;
+    setLoading(true);
+    try {
+      const logs = await publicClient.getLogs({
+        address: CONTRACT_ADDRESS,
+        events: ABI,
+        fromBlock: 0n,
+        toBlock: 'latest',
+      });
+      const parsed = logs
+        .filter(log => log.args?.owner?.toLowerCase() === address.toLowerCase())
+        .map(log => {
+          const ts = log.args?.createdAt || log.args?.timestamp;
+          const date = ts ? new Date(Number(ts) * 1000) : null;
+          return {
+            event: log.eventName,
+            kind: log.args?.kind || '',
+            date,
+            owner: log.args?.owner,
+          };
+        })
+        .sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
+      setEvents(parsed);
+    } catch (e) {
+      console.error('Failed to load events:', e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadEvents(); }, [isConnected, address]);
+
+  const kindLabels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note' };
 
   return (
     <AppShell active="activity" crumbs={['HOME', 'TRUST', 'ACTIVITY']}>
-      <PageHead eyebrow="Trust & people" title="<em>Activity</em> log" sub="Every inscription and proof-of-life is recorded onchain. Your grimoire remembers." />
+      <PageHead eyebrow="Trust & people" title="<em>Activity</em> log" sub="Every inscription, proof-of-life, and heir configuration is recorded onchain." />
 
       {!isConnected ? (
-        <div className="app-card" style={{ padding: 60, textAlign: 'center', color: 'var(--ink-soft)' }}>
-          Connect your wallet to view your activity.
-        </div>
+        <div className="app-card" style={{ padding: 60, textAlign: 'center', color: 'var(--ink-soft)' }}>Connect your wallet to view your activity.</div>
+      ) : loading ? (
+        <div className="app-card" style={{ padding: 60, textAlign: 'center', color: 'var(--ink-soft)' }}>Loading events...</div>
       ) : (
         <section className="app-card" style={{ padding: 24 }}>
-          <div className="kv-key">onchain events</div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginTop: 4, fontWeight: 500 }}>Recent activity</h3>
-
-          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <ActivityItem time="Connected" text="Wallet connected to Grimoire" />
-            <ActivityItem time="Now" text={<span>Your inscriptions are fetched from <strong>Filecoin Calibration</strong> (chain 314159)</span>} />
-            <ActivityItem time="Onchain" text="Activity events (InscriptionCreated, Pinged, HeirsConfigured) are emitted by GrimoireRegistry on FEVM" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <div className="kv-key">onchain events</div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginTop: 4, fontWeight: 500 }}>{events.length} events</h3>
+            </div>
+            <button className="app-btn ghost" onClick={loadEvents} style={{ padding: '6px 12px', fontSize: '0.78rem' }}>Refresh</button>
           </div>
+
+          {events.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
+              <p>No events found for your wallet. Create an inscription to get started.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {events.map((ev, i) => (
+                <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px dashed color-mix(in srgb, var(--ink) 8%, transparent)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--gold-warm)', minWidth: 80, paddingTop: 2 }}>
+                    {ev.date ? ev.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'}
+                  </span>
+                  <div>
+                    <div style={{ fontSize: '0.88rem', color: 'var(--ink)', lineHeight: 1.5 }}>
+                      {ev.event === 'InscriptionCreated' && `✦ Inscribed ${kindLabels[ev.kind] || ev.kind}`}
+                      {ev.event === 'HeirsConfigured' && `✦ Heirs configured`}
+                      {ev.event === 'Pinged' && `✦ Pinged — proof of life`}
+                    </div>
+                    {ev.date && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', marginTop: 2 }}>
+                        {ev.date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
-
-      <section className="app-card" style={{ marginTop: 18, padding: 24, background: 'linear-gradient(170deg, rgba(255,248,232,0.7), rgba(244,229,194,0.4))', border: '1px solid color-mix(in srgb, var(--gold) 22%, transparent)' }}>
-        <div className="kv-key" style={{ color: 'var(--gold-warm)' }}>coming in Phase 3</div>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginTop: 4, fontWeight: 500 }}>Full event history</h3>
-        <p style={{ marginTop: 8, color: 'var(--ink-soft)', fontSize: '0.9rem', lineHeight: 1.55 }}>
-          The Graph subgraph indexing will provide fast, sortable, filterable activity with links to inscriptions, timestamps, and onchain verification links. For now, every event is visible on the Calibration block explorer.
-        </p>
-        <button className="app-btn gold" style={{ marginTop: 14 }} onClick={() => window.open('https://calibration.filfox.info/address/0x3f0bF9B29F276CD3219995d434621b2C70a91267', '_blank')}>
-          View contract on explorer →
-        </button>
-      </section>
     </AppShell>
   );
 }
-
-function ActivityItem({ time, text }) {
-  return (
-    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px dashed color-mix(in srgb, var(--ink) 8%, transparent)' }}>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--gold-warm)', minWidth: 72, paddingTop: 2 }}>{time}</span>
-      <span style={{ fontSize: '0.88rem', color: 'var(--ink)', lineHeight: 1.5 }}>{text}</span>
-    </div>
-  );
-}
-
 export { ScreenActivity };

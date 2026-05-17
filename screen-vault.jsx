@@ -114,7 +114,7 @@ function ScreenVault() {
           </div>
         </div>
         <StatBlock k="Inscriptions" v={String(inscriptions.length)} sub="onchain" />
-        <StatBlock k="Contract" v="FEVM" sub="Calibration" />
+        <StatBlock k="Locked" v={String(inscriptions.filter(ins => ins.unlockAt && Number(ins.unlockAt) * 1000 > Date.now()).length)} sub="time-locked" />
         <StatBlock k="Encryption" v="AES-256" sub="client-side" />
       </section>
 
@@ -157,6 +157,7 @@ function ScreenVault() {
               <thead>
                 <tr>
                   <th style={{ paddingLeft: 20 }}>Kind</th>
+                  <th>Chapter</th>
                   <th>CID</th>
                   <th>Created</th>
                   <th></th>
@@ -179,6 +180,9 @@ function ScreenVault() {
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--ink-soft)' }}>—</span>
                     </td>
                     <td>
                       <a
