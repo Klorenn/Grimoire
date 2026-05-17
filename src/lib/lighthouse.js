@@ -14,9 +14,6 @@ const FALLBACK_GATEWAYS = [
   'https://ipfs.io/ipfs',
   'https://cloudflare-ipfs.com/ipfs',
   'https://dweb.link/ipfs',
-  'https://gateway.pinata.cloud/ipfs',
-  'https://nftstorage.link/ipfs',
-  'https://4everland.io/ipfs',
 ];
 
 /**
@@ -45,21 +42,26 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
 export async function fetchEncryptedPayload(cid) {
   const urls = FALLBACK_GATEWAYS.map((gw) => `${gw}/${cid}`);
 
-  for (const url of urls) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (data?.ciphertext) return data;
-    } catch {
-      continue;
+  // Try all gateways with retries
+  for (let attempt = 0; attempt < 3; attempt++) {
+    for (const url of urls) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(url, { signal: controller.signal, mode: 'cors' });
+        clearTimeout(timeout);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data?.ciphertext) return data;
+      } catch {
+        continue;
+      }
     }
+    // Wait before retry (IPFS propagation)
+    if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
   }
 
-  throw new Error(`Failed to fetch CID ${cid} from all gateways`);
+  throw new Error(`Failed to fetch CID ${cid.slice(0, 12)}... from all gateways. The file may still be propagating through IPFS. Try again in 30 seconds.`);
 }
 
 /**
