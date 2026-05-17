@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAccount, useReadContract } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { AppShell, PageHead } from './shell.jsx';
 import { IconSeed, IconKey, IconLetter, IconDocument, IconLedger, IconNote } from './icons.jsx';
 import { getGatewayUrl } from './src/lib/lighthouse.js';
@@ -27,14 +27,32 @@ function ScreenVault() {
   const v = t.vault;
   const [showForm, setShowForm] = useState(false);
   const [reveal, setReveal] = useState(null);
+  const [inscriptions, setInscriptions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const { data: inscriptions = [], refetch: loadInscriptions, isLoading } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
-    functionName: 'getMyInscriptions',
-    account: address,
-    query: { enabled: isConnected && CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000' },
-  });
+  async function loadInscriptions() {
+    if (!isConnected || !address) return;
+    setLoading(true);
+    try {
+      const { readContract } = await import('@wagmi/core');
+      const { config } = await import('./src/config.js');
+      const data = await readContract(config, {
+        address: CONTRACT_ADDRESS,
+        abi: ABI,
+        functionName: 'getMyInscriptions',
+        account: address,
+      });
+      setInscriptions(data || []);
+    } catch (e) {
+      console.error('Failed to load:', e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  React.useEffect(() => {
+    if (isConnected && address) loadInscriptions();
+  }, [isConnected, address]);
 
   const kindLabel = (k) => {
     const labels = { 'seed-phrase': 'Seed phrase', 'private-key': 'Private key', 'document': 'Document', 'letter': 'Letter', 'note': 'Note' };
@@ -98,7 +116,7 @@ function ScreenVault() {
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
               Connect your wallet to view your inscriptions.
             </div>
-          ) : isLoading ? (
+          ) : loading ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-soft)' }}>
               Loading inscriptions...
             </div>
