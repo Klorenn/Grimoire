@@ -163,22 +163,76 @@ export async function decryptWithWalletKey(payload, sigKey) {
 export const KEY_DERIVATION_MESSAGE = 'Grimoire Vault Key Derivation v1';
 
 /**
- * ECIES: Encrypt data with recipient's public key.
- * Uses ECDH key agreement + AES-256-GCM.
+ * ECIES: Encrypt data with recipient's hex public key (uncompressed 0x04...).
+ * Uses ECDH (P-256) + AES-256-GCM.
  * Returns { ephemeralPubKey (hex), iv (base64), ciphertext (base64) }
- *
- * NOTE: Full ECIES implementation requires raw public key operations.
- * For Phase 1-3, use the KeyEscrow contract with wallet-based key derivation.
- * The grantee signs with their wallet to decrypt.
  */
 export async function eciesEncrypt(plaintext, recipientPubKeyHex) {
-  // Simplified for MVP: encrypt with a shared secret derived from both parties
-  // Full ECIES with ECDH would be implemented in Phase 4
-  throw new Error('ECIES not yet implemented. Use KeyEscrow contract for key sharing.');
+  // Import recipient's public key
+  const pubKeyRaw = hexToBytes(recipientPubKeyHex.startsWith('0x') ? recipientPubKeyHex.slice(2) : recipientPubKeyHex);
+  const recipientPubKey = await crypto.subtle.importKey('raw', pubKeyRaw,
+    { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+
+  // Generate ephemeral key pair
+  const ephemeral = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']);
+
+  // Derive shared secret
+  const sharedSecret = await crypto.subtle.deriveKey(
+    { name: 'ECDH', public: recipientPubKey },
+    ephemeral.privateKey,
+    { name: 'AES-GCM', length: 256 }, false, ['encrypt']
+  );
+
+  // Encrypt plaintext
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, sharedSecret, enc.encode(plaintext));
+
+  // Export ephemeral public key
+  const ephemeralPubKeyRaw = await crypto.subtle.exportKey('raw', ephemeral.publicKey);
+  return {
+    ephemeralPubKey: '0x' + bytesToHex(new Uint8Array(ephemeralPubKeyRaw)),
+    iv: bufToBase64(iv),
+    ciphertext: bufToBase64(ciphertext),
+  };
 }
 
-export async function eciesDecrypt(encryptedData, ownerPrivateKey) {
-  throw new Error('ECIES not yet implemented. Use KeyEscrow contract for key sharing.');
+/**
+ * ECIES: Decrypt data using owner's private key.
+ */
+export async function eciesDecrypt(encryptedData, privateKeyHex) {
+  // Import owner's private key
+  const privKeyRaw = hexToBytes(privateKeyHex.startsWith('0x') ? privateKeyHex.slice(2) : privateKeyHex);
+  const ownerPrivKey = await crypto.subtle.importKey('pkcs8', privKeyRaw,
+    { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey']);
+
+  // Import ephemeral public key
+  const ephPubRaw = hexToBytes(encryptedData.ephemeralPubKey.startsWith('0x') ? encryptedData.ephemeralPubKey.slice(2) : encryptedData.ephemeralPubKey);
+  const ephPubKey = await crypto.subtle.importKey('raw', ephPubRaw,
+    { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+
+  // Derive same shared secret
+  const sharedSecret = await crypto.subtle.deriveKey(
+    { name: 'ECDH', public: ephPubKey },
+    ownerPrivKey,
+    { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+  );
+
+  // Decrypt
+  const iv = new Uint8Array(base64ToBuf(encryptedData.iv));
+  const ciphertext = new Uint8Array(base64ToBuf(encryptedData.ciphertext));
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, sharedSecret, ciphertext);
+  return new TextDecoder().decode(decrypted);
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  return bytes.buffer;
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
