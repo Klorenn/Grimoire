@@ -7,6 +7,8 @@ import { InscribeForm } from './src/components/InscribeForm.jsx';
 import { RevealModal } from './src/components/RevealModal.jsx';
 import { CONTRACT_ADDRESS } from './src/config.js';
 import { useT } from './i18n.jsx';
+import { readContract } from '@wagmi/core';
+import { config } from './src/config.js';
 
 const ABI = [
   { inputs: [], name: 'getMyInscriptions', outputs: [{ components: [{ name: 'owner', type: 'address' }, { name: 'cid', type: 'string' }, { name: 'kind', type: 'string' }, { name: 'titleHash', type: 'string' }, { name: 'createdAt', type: 'uint256' }], name: '', type: 'tuple[]' }], stateMutability: 'view', type: 'function' },
@@ -34,8 +36,6 @@ function ScreenVault() {
     if (!isConnected || !address) return;
     setLoading(true);
     try {
-      const { readContract } = await import('@wagmi/core');
-      const { config } = await import('./src/config.js');
       const data = await readContract(config, {
         address: CONTRACT_ADDRESS,
         abi: ABI,
