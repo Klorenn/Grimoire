@@ -8,13 +8,7 @@
  */
 
 import lighthouse from '@lighthouse-web3/sdk';
-import { LIGHTHOUSE_API_KEY, GATEWAY } from '../config.js';
-
-const FALLBACK_GATEWAYS = [
-  'https://ipfs.io/ipfs',
-  'https://cloudflare-ipfs.com/ipfs',
-  'https://dweb.link/ipfs',
-];
+import { LIGHTHOUSE_API_KEY } from '../config.js';
 
 /**
  * Upload an encrypted payload (JSON string) to Lighthouse.
@@ -40,28 +34,31 @@ export async function uploadEncryptedPayload(payload, name = 'grimoire-inscripti
  * @returns {Promise<Object>} The EncryptedPayload object
  */
 export async function fetchEncryptedPayload(cid) {
-  const urls = FALLBACK_GATEWAYS.map((gw) => `${gw}/${cid}`);
+  // Try gateways in order: w3s first (fastest for Lighthouse CIDs), then public
+  const allUrls = [
+    `https://${cid}.ipfs.w3s.link`,
+    `https://${cid}.ipfs.cf-ipfs.com`,
+    `https://ipfs.io/ipfs/${cid}`,
+    `https://cloudflare-ipfs.com/ipfs/${cid}`,
+    `https://dweb.link/ipfs/${cid}`,
+  ];
 
-  // Try all gateways with retries
   for (let attempt = 0; attempt < 3; attempt++) {
-    for (const url of urls) {
+    for (const url of allUrls) {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch(url, { signal: controller.signal, mode: 'cors' });
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) continue;
         const data = await res.json();
         if (data?.ciphertext) return data;
-      } catch {
-        continue;
-      }
+      } catch { continue; }
     }
-    // Wait before retry (IPFS propagation)
-    if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+    if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
   }
 
-  throw new Error(`Failed to fetch CID ${cid.slice(0, 12)}... from all gateways. The file may still be propagating through IPFS. Try again in 30 seconds.`);
+  throw new Error(`Failed to fetch from all gateways. Try again later.`);
 }
 
 /**
@@ -70,5 +67,5 @@ export async function fetchEncryptedPayload(cid) {
  * @returns {string}
  */
 export function getGatewayUrl(cid) {
-  return `${GATEWAY}/${cid}`;
+  return `https://ipfs.io/ipfs/${cid}`;
 }

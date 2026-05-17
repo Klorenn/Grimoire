@@ -29,7 +29,6 @@ export function RevealModal({ cid, kind, onClose }) {
       }
     } catch {
       setError(r.fetchError);
-      setFetchAttempt(0);
     } finally {
       setLoading(false);
     }
