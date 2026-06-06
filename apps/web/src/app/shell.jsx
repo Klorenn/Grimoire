@@ -5,7 +5,7 @@ import { useT } from './i18n.jsx';
 
 /* Local sigil */
 const ASigil = ({ size = 28, className = '', style }) => (
-  <img src="assets/grimoire-icon.png" alt="Grimoire" width={size} height={size} className={className} style={{ display: 'block', imageRendering: 'auto', ...style }} />
+  <img src="/assets/grimoire-icon.png" alt="Grimoire" width={size} height={size} className={className} style={{ display: 'block', imageRendering: 'auto', ...style }} />
 );
 
 /* ── Tiny inline icons for navigation ────────────────────────── */

@@ -95,8 +95,8 @@ function HeroVideo() {
   return (
     <video
       ref={videoRef}
-      src="assets/transition.mp4"
-      poster="assets/frame-initial.png"
+      src="/assets/transition.mp4"
+      poster="/assets/frame-initial.png"
       muted
       playsInline
       preload="auto"
@@ -423,7 +423,7 @@ function Problem() {
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
           {/* Visual card — paper-burns video */}
           <VisualCard
-            videoSrc="assets/paper-burns.mp4"
+            videoSrc="/assets/paper-burns.mp4"
             filter="saturate(1.05) contrast(1.08)"
             tag={t.problem.visualTag}
             headline={t.problem.visualHeadline}
@@ -564,7 +564,7 @@ function Solution() {
           <div className="lg:col-span-2 space-y-7 max-w-[52ch]">
             <div className="reveal" style={{ aspectRatio: '4 / 3' }}>
               <VisualCard
-                videoSrc="assets/disk-repair.mp4"
+                videoSrc="/assets/disk-repair.mp4"
                 filter="saturate(0.92) contrast(1.04)"
                 tag={t.solution.videoTag}
                 headline={t.solution.videoHead}
@@ -735,7 +735,7 @@ function Compare() {
         {/* Banner — companies-fade video */}
         <div className="reveal mt-10" style={{ aspectRatio: '24 / 9' }}>
           <VisualCard
-            videoSrc="assets/companies-fade.mp4"
+            videoSrc="/assets/companies-fade.mp4"
             filter="saturate(0.95) contrast(1.02)"
             tag={t.compare.videoTag}
             headline={t.compare.videoHead}
